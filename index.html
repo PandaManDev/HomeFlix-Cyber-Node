@@ -631,7 +631,7 @@
             const id = idInput.value.trim();
             const error = document.getElementById('discord-profile-error');
             error.classList.add('hidden'); error.textContent = '';
-            if (!/^\\d{17,20}$/.test(id)) {
+            if (!/^\d{17,20}$/.test(id)) {
                 error.textContent = 'Enter a valid Discord User ID (17–20 digits).'; error.classList.remove('hidden'); return;
             }
             if (saveId) localStorage.setItem('homeflix-discord-user-id', id);
