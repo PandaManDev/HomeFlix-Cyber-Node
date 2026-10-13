@@ -96,6 +96,35 @@
             0% { transform: translateY(-100%); }
             100% { transform: translateY(1000%); }
         }
+    
+        /* Netflix-inspired HomeFlix library */
+        body.netflix-skin { background:#080808; color:#f5f5f5; }
+        body.netflix-skin header { background:rgba(12,12,12,.96)!important; border-color:#292929!important; }
+        body.netflix-skin [class*="border-cyan-"] { border-color:rgba(229,9,20,.65)!important; }
+        body.netflix-skin [class*="bg-cyan-500"] { background-color:#e50914!important; color:#fff!important; }
+        body.netflix-skin [class*="text-cyan-"] { color:#f3f3f3!important; }
+        body.netflix-skin [class*="hover\\:border-cyan-"]:hover { border-color:#e50914!important; }
+        .library-card { min-width:0; background:#181818; border:1px solid rgba(255,255,255,.08); border-radius:12px; overflow:hidden; transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease; }
+        .library-card:hover { transform:translateY(-3px); border-color:rgba(229,9,20,.65); box-shadow:0 12px 28px rgba(0,0,0,.35); }
+        .library-poster { position:relative; aspect-ratio:16/10; background:linear-gradient(135deg,#262626,#101010); overflow:hidden; }
+        .library-poster img { width:100%; height:100%; object-fit:cover; display:block; }
+        .library-poster-fallback { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#525252; font-size:2rem; }
+        .library-poster-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.25); opacity:0; transition:opacity .2s; }
+        .library-card:hover .library-poster-overlay { opacity:1; }
+        .library-card-title { font-size:.9rem; font-weight:650; color:#f5f5f5; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .library-card-meta { color:#a3a3a3; font-size:.72rem; margin-top:.3rem; }
+        .library-progress { height:3px; background:#404040; overflow:hidden; }
+        .library-progress span { display:block; height:100%; background:#e50914; }
+        .library-action { width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; border-radius:999px; border:1px solid rgba(255,255,255,.25); color:#eee; background:rgba(0,0,0,.45); }
+        .library-action.active { background:#e50914; border-color:#e50914; color:white; }
+        #library-grid.list-mode { display:flex; flex-direction:column; }
+        #library-grid.list-mode .library-card { display:flex; align-items:center; }
+        #library-grid.list-mode .library-poster { width:150px; min-width:150px; aspect-ratio:16/9; }
+        #library-grid.list-mode .library-card-body { flex:1; min-width:0; }
+        #library-grid.list-mode .library-card-actions { padding-right:1rem; }
+        body.midnight-skin { background:#07111f; }
+        body.midnight-skin #library-dashboard { background:#0d1b2a; }
+
     </style>
 </head>
 <body class="crt min-h-screen flex flex-col selection:bg-cyan-500 selection:text-black">
@@ -140,6 +169,46 @@
     </header>
 
     <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 p-4 max-w-[1800px] w-full mx-auto">
+
+        <!-- HomeFlix Netflix-style library dashboard -->
+        <section id="library-dashboard" class="lg:col-span-12 rounded-2xl overflow-hidden bg-[#111] border border-white/10 shadow-2xl">
+            <div class="relative p-5 md:p-7 bg-gradient-to-r from-[#240406] via-[#171010] to-[#111] border-b border-white/10">
+                <div class="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-5">
+                    <div>
+                        <p class="text-red-500 font-bold text-xs tracking-[.35em] uppercase mb-2">Your personal streaming space</p>
+                        <h2 class="text-3xl md:text-4xl font-bold tracking-tight text-white">Movies &amp; Shows</h2>
+                        <p class="text-sm text-zinc-400 mt-2">Your videos, your library. Import media to build your collection.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <label class="cursor-pointer px-4 py-2.5 rounded-lg bg-[#e50914] hover:bg-red-700 text-white font-semibold text-sm transition"><i class="fa-solid fa-plus mr-2"></i>Add videos<input id="library-file-selector" type="file" class="hidden" multiple accept="video/*"></label>
+                        <label class="cursor-pointer px-4 py-2.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white font-semibold text-sm transition"><i class="fa-solid fa-folder-open mr-2"></i>Scan folder<input id="library-folder-selector" type="file" class="hidden" webkitdirectory directory multiple accept="video/*"></label>
+                        <button onclick="openLibrarySettings()" class="px-4 py-2.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white text-sm transition" title="Themes and remote"><i class="fa-solid fa-sliders mr-2"></i>Settings</button>
+                    </div>
+                </div>
+                <div class="mt-6 flex flex-col lg:flex-row gap-3">
+                    <div class="relative flex-1 min-w-0"><i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500"></i><input id="library-search" type="search" placeholder="Search your library..." class="w-full rounded-xl bg-black/50 border border-white/15 py-3 pl-11 pr-4 text-sm text-white placeholder-zinc-500 outline-none focus:border-red-600"></div>
+                    <select id="library-genre" class="rounded-xl bg-[#202020] border border-white/15 px-4 py-3 text-sm text-white outline-none focus:border-red-600"><option value="all">All genres</option><option>Action</option><option>Comedy</option><option>Drama</option><option>Horror</option><option>Sci-Fi</option><option>Documentary</option><option>Animation</option><option>Other</option></select>
+                    <div class="flex rounded-xl bg-black/40 border border-white/10 p-1">
+                        <button id="grid-view-btn" onclick="setLibraryView('grid')" class="px-3 py-2 rounded-lg text-sm bg-red-600 text-white" title="Grid view"><i class="fa-solid fa-grip"></i></button>
+                        <button id="list-view-btn" onclick="setLibraryView('list')" class="px-3 py-2 rounded-lg text-sm text-zinc-400 hover:text-white" title="List view"><i class="fa-solid fa-list"></i></button>
+                    </div>
+                </div>
+            </div>
+            <div class="p-5 md:p-7 space-y-8">
+                <section id="continue-section" class="hidden"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-white">Continue Watching</h3><span class="text-xs text-zinc-500">Progress saved on this device</span></div><div id="continue-grid" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4"></div></section>
+                <section><div class="flex items-center justify-between gap-3 mb-4"><div><h3 id="library-results-title" class="text-xl font-bold text-white">Recently Added</h3><p id="library-results-meta" class="text-xs text-zinc-500 mt-1">0 videos in your library</p></div><div class="flex gap-2"><button onclick="setLibraryFilter('all')" id="filter-all-btn" class="px-3 py-2 rounded-full text-xs bg-white text-black font-semibold">All videos</button><button onclick="setLibraryFilter('favorites')" id="filter-favorites-btn" class="px-3 py-2 rounded-full text-xs bg-white/10 text-zinc-300">Favorites</button><button onclick="setLibraryFilter('watchlist')" id="filter-watchlist-btn" class="px-3 py-2 rounded-full text-xs bg-white/10 text-zinc-300">My List</button></div></div><div id="library-grid" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4"></div><div id="library-empty" class="hidden rounded-xl border border-dashed border-white/15 p-8 text-center"><i class="fa-solid fa-film text-3xl text-zinc-600"></i><h4 class="font-semibold text-white mt-3">Your library is ready</h4><p class="text-sm text-zinc-500 mt-1">Add video files or scan a folder to create your collection.</p></div></section>
+            </div>
+        </section>
+
+        <div id="library-settings-modal" class="hidden fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm items-center justify-center p-4">
+            <div class="w-full max-w-lg rounded-2xl bg-[#171717] border border-white/15 p-6 shadow-2xl">
+                <div class="flex items-center justify-between mb-5"><h3 class="text-xl font-bold text-white">HomeFlix Settings</h3><button onclick="closeLibrarySettings()" class="text-zinc-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button></div>
+                <label class="block text-sm text-zinc-300 mb-2">Appearance</label><select id="library-theme" class="w-full rounded-lg bg-black border border-white/15 p-3 text-white mb-5"><option value="netflix">Netflix Red</option><option value="cyber">Cyber Neon</option><option value="midnight">Midnight Blue</option></select>
+                <div class="rounded-xl bg-black/30 border border-white/10 p-4 mb-5"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-red-600/20 flex items-center justify-center text-red-400"><i class="fa-solid fa-mobile-screen-button"></i></div><div class="flex-1"><h4 class="font-semibold text-white">Phone remote</h4><p class="text-xs text-zinc-500 mt-1">Remote control works in the installed desktop app when its local remote service is available.</p></div></div><p id="remote-status" class="text-sm text-zinc-400 mt-3">Checking desktop support…</p><button onclick="showRemoteInfo()" class="mt-3 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-white text-sm">Remote control info</button></div>
+                <div class="flex justify-end gap-2"><button onclick="closeLibrarySettings()" class="px-4 py-2 rounded-lg bg-white/10 text-white">Cancel</button><button onclick="saveLibrarySettings()" class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold">Save settings</button></div>
+            </div>
+        </div>
+
         
         <!-- Video Player & Telemetry Section (Col 1-8) -->
         <div class="lg:col-span-8 flex flex-col space-y-4">
@@ -437,6 +506,125 @@
     </div>
 
     <script>
+
+        const LIBRARY_STORAGE_KEY = 'homeflix-library-v1';
+        function loadLibraryMetadata() {
+            try { return JSON.parse(localStorage.getItem('homeflix-library-v1') || '{}'); } catch (_) { return {}; }
+        }
+        function libraryKey(item) { return item.id || (item.type === 'url' ? item.url : item.title + '|' + (item.size || '')); }
+        function persistLibrary() {
+            const data = {};
+            state.playlist.forEach(item => {
+                const key = libraryKey(item);
+                data[key] = { title:item.title, url:item.type === 'url' ? item.url : '', type:item.type, size:item.size || '', thumbnail:item.type === 'url' ? (item.thumbnail || '') : '', genre:item.genre || inferGenre(item.title), addedAt:item.addedAt || Date.now(), duration:item.duration || 0, progress:item.progress || 0, favorite:!!item.favorite, watchlist:!!item.watchlist };
+            });
+            // Retain prior progress for local files even though browser security requires re-importing the files after reload.
+            Object.keys(state.savedLibrary || {}).forEach(k => { if (!data[k]) data[k]=state.savedLibrary[k]; });
+            state.savedLibrary=data;
+            try { localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(data)); } catch (e) { showToast('Library storage is full. Some covers may not be saved.'); }
+        }
+        function inferGenre(title) {
+            const t=(title||'').toLowerCase();
+            if (/horror|scary|haunt|ghost|zombie|nightmare/.test(t)) return 'Horror';
+            if (/comedy|funny|laugh/.test(t)) return 'Comedy';
+            if (/documentary|behind.the.scenes|making.of/.test(t)) return 'Documentary';
+            if (/anime|animation|cartoon/.test(t)) return 'Animation';
+            if (/sci.?fi|space|alien|robot|future|cyber/.test(t)) return 'Sci-Fi';
+            if (/action|fight|war|battle|mission/.test(t)) return 'Action';
+            if (/drama|story|life/.test(t)) return 'Drama';
+            return 'Other';
+        }
+        function escapeLibraryText(value) { return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+        function syncLibraryMetadata(item) {
+            if (!item) return;
+            const saved=state.savedLibrary[libraryKey(item)] || {};
+            item.genre=item.genre || saved.genre || inferGenre(item.title);
+            item.addedAt=item.addedAt || saved.addedAt || Date.now();
+            item.duration=item.duration || saved.duration || 0;
+            item.progress=typeof item.progress === 'number' ? item.progress : (saved.progress || 0);
+            item.favorite=typeof item.favorite === 'boolean' ? item.favorite : !!saved.favorite;
+            item.watchlist=typeof item.watchlist === 'boolean' ? item.watchlist : !!saved.watchlist;
+            if (!item.thumbnail && saved.thumbnail) item.thumbnail=saved.thumbnail;
+        }
+        function setLibraryView(view) {
+            state.libraryView=view;
+            document.getElementById('grid-view-btn').className='px-3 py-2 rounded-lg text-sm '+(view==='grid'?'bg-red-600 text-white':'text-zinc-400 hover:text-white');
+            document.getElementById('list-view-btn').className='px-3 py-2 rounded-lg text-sm '+(view==='list'?'bg-red-600 text-white':'text-zinc-400 hover:text-white');
+            renderLibrary();
+        }
+        function setLibraryFilter(filter) {
+            state.libraryFilter=filter;
+            for (const [id,value] of [['filter-all-btn','all'],['filter-favorites-btn','favorites'],['filter-watchlist-btn','watchlist']]) {
+                const el=document.getElementById(id);
+                el.className='px-3 py-2 rounded-full text-xs '+(filter===value?'bg-white text-black font-semibold':'bg-white/10 text-zinc-300');
+            }
+            renderLibrary();
+        }
+        function applyLibraryTheme(theme) {
+            document.body.classList.remove('netflix-skin','cyber-skin','midnight-skin');
+            if (theme==='cyber') { document.body.classList.add('cyber-skin'); document.body.classList.remove('crt-off'); }
+            else if (theme==='midnight') document.body.classList.add('midnight-skin');
+            else document.body.classList.add('netflix-skin');
+        }
+        function openLibrarySettings() {
+            document.getElementById('library-theme').value=state.libraryTheme;
+            document.getElementById('library-settings-modal').classList.remove('hidden');
+            document.getElementById('library-settings-modal').classList.add('flex');
+        }
+        function closeLibrarySettings() {
+            document.getElementById('library-settings-modal').classList.add('hidden');
+            document.getElementById('library-settings-modal').classList.remove('flex');
+        }
+        function saveLibrarySettings() {
+            state.libraryTheme=document.getElementById('library-theme').value;
+            localStorage.setItem('homeflix-theme',state.libraryTheme);
+            applyLibraryTheme(state.libraryTheme);
+            closeLibrarySettings();
+            showToast('Appearance settings saved.');
+        }
+        function showRemoteInfo() {
+            const msg=window.homeflixDesktop ? 'Use the remote address shown by the HomeFlix desktop app and enter its pairing PIN on your phone. Keep both devices on the same trusted Wi-Fi.' : 'Install and open the Windows desktop build to enable a phone remote on your local Wi-Fi. The hosted website alone cannot accept incoming phone commands.';
+            showToast(msg);
+        }
+        function toggleLibraryFlag(index, flag) {
+            const item=state.playlist[index]; if (!item) return;
+            item[flag]=!item[flag]; persistLibrary(); renderLibrary(); renderPlaylist();
+            showToast(item[flag] ? (flag==='favorite'?'Added to Favorites':'Added to My List') : (flag==='favorite'?'Removed from Favorites':'Removed from My List'));
+        }
+        function libraryCard(item, index, compact=false) {
+            const title=escapeLibraryText(item.title);
+            const genre=escapeLibraryText(item.genre || inferGenre(item.title));
+            const duration=item.duration ? formatTime(item.duration) : (item.size || 'Video');
+            const progress=Math.max(0,Math.min(100,item.duration ? (item.progress/item.duration)*100 : 0));
+            const cover=item.thumbnail ? '<img src="'+item.thumbnail+'" alt="" loading="lazy">' : '<div class="library-poster-fallback"><i class="fa-solid fa-film"></i></div>';
+            return '<article class="library-card '+(state.libraryView==='list'&&!compact?'flex items-center':'')+'">'+
+                '<div class="library-poster" onclick="selectQueueItem('+index+')" role="button" tabindex="0" aria-label="Play '+title+'">'+cover+'<div class="library-poster-overlay"><button class="w-12 h-12 rounded-full bg-red-600 text-white shadow-lg" onclick="event.stopPropagation();selectQueueItem('+index+')"><i class="fa-solid fa-play"></i></button></div></div>'+
+                '<div class="library-card-body p-3 flex-1 min-w-0"><div class="flex items-start justify-between gap-2"><div class="min-w-0"><h4 class="library-card-title" title="'+title+'">'+title+'</h4><p class="library-card-meta">'+genre+' · '+escapeLibraryText(duration)+'</p></div><div class="flex gap-1 shrink-0"><button class="library-action '+(item.favorite?'active':'')+'" onclick="toggleLibraryFlag('+index+',\'favorite\')" title="Favorite"><i class="fa-solid fa-heart text-xs"></i></button><button class="library-action '+(item.watchlist?'active':'')+'" onclick="toggleLibraryFlag('+index+',\'watchlist\')" title="Add to My List"><i class="fa-solid fa-bookmark text-xs"></i></button></div></div>'+
+                (item.duration ? '<div class="library-progress mt-3"><span style="width:'+progress+'%"></span></div>' : '')+'</div></article>';
+        }
+        function renderLibrary() {
+            if (!document.getElementById('library-grid')) return;
+            state.playlist.forEach(syncLibraryMetadata);
+            const query=state.librarySearch || '';
+            const matches=state.playlist.map((item,index)=>({item,index})).filter(({item})=>{
+                const text=(item.title+' '+(item.genre||'')+' '+(item.type||'')).toLowerCase();
+                return (!query || text.includes(query)) && (state.libraryGenre==='all' || (item.genre||inferGenre(item.title))===state.libraryGenre) && (state.libraryFilter==='all' || (state.libraryFilter==='favorites'?item.favorite:item.watchlist));
+            }).sort((a,b)=>(b.item.addedAt||0)-(a.item.addedAt||0));
+            const recent=matches;
+            const grid=document.getElementById('library-grid');
+            grid.classList.toggle('list-mode',state.libraryView==='list');
+            grid.className=(state.libraryView==='list'?'list-mode flex flex-col gap-3':'grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4');
+            grid.innerHTML=recent.map(({item,index})=>libraryCard(item,index)).join('');
+            document.getElementById('library-results-title').textContent=state.libraryFilter==='favorites'?'Favorites':state.libraryFilter==='watchlist'?'My List':'Recently Added';
+            document.getElementById('library-results-meta').textContent=matches.length+' video'+(matches.length===1?'':'s')+' · sorted by recently added';
+            document.getElementById('library-empty').classList.toggle('hidden',matches.length>0);
+            const continuing=state.playlist.map((item,index)=>({item,index})).filter(x=>x.item.progress>0 && x.item.duration && x.item.progress<x.item.duration-20).sort((a,b)=>(b.item.progress/b.item.duration)-(a.item.progress/a.item.duration)).slice(0,5);
+            const section=document.getElementById('continue-section');
+            section.classList.toggle('hidden',continuing.length===0);
+            document.getElementById('continue-grid').innerHTML=continuing.map(({item,index})=>libraryCard(item,index,true)).join('');
+            persistLibrary();
+        }
+
         // Global Application State
         const state = {
             playlist: [],
@@ -449,7 +637,13 @@
             audioSource: null,
             gainNode: null,
             analyser: null,
-            visualizerAnimationFrame: null
+            visualizerAnimationFrame: null,
+            libraryFilter: 'all',
+            libraryView: 'grid',
+            librarySearch: '',
+            libraryGenre: 'all',
+            libraryTheme: localStorage.getItem('homeflix-theme') || 'netflix',
+            savedLibrary: loadLibraryMetadata()
         };
 
         // DOM Elements
@@ -536,8 +730,16 @@
                         url: blobUrl,
                         type: 'local',
                         size: (file.size / (1024 * 1024)).toFixed(1) + ' MB',
-                        thumbnail: ''
+                        thumbnail: '',
+                        id: 'local-' + file.name + '-' + file.size + '-' + file.lastModified,
+                        genre: inferGenre(file.name),
+                        addedAt: Date.now(),
+                        duration: 0,
+                        progress: 0,
+                        favorite: false,
+                        watchlist: false
                     };
+                    syncLibraryMetadata(item);
                     state.playlist.push(item);
                     addedCount++;
                     generateVideoThumbnail(item);
@@ -545,7 +747,8 @@
             }
             if (addedCount > 0) {
                 renderPlaylist();
-                showToast(`Ingested ${addedCount} video file(s) into queue.`);
+                renderLibrary();
+                showToast(`Added ${addedCount} video file(s) to your library.`);
                 if (state.playlist.length === addedCount) {
                     selectQueueItem(0);
                 }
@@ -653,6 +856,7 @@
             if (index < 0 || index >= state.playlist.length) return;
             state.currentIndex = index;
             const item = state.playlist[index];
+            syncLibraryMetadata(item);
             
             video.src = item.url;
             video.load();
@@ -661,6 +865,7 @@
             
             emptyStateOverlay.classList.add('hidden');
             renderPlaylist();
+            renderLibrary();
             
             // Resume audio context if suspended
             if (state.audioContext && state.audioContext.state === 'suspended') {
@@ -746,10 +951,15 @@
                 url: sourceInput,
                 type: 'url',
                 size: 'Stream',
-                thumbnail: ''
+                thumbnail: '',
+                id: 'url-' + sourceInput,
+                genre: inferGenre(titleInput || sourceInput),
+                addedAt: Date.now(), duration: 0, progress: 0, favorite: false, watchlist: false
             };
+            syncLibraryMetadata(urlItem);
             state.playlist.push(urlItem);
             generateVideoThumbnail(urlItem);
+            renderLibrary();
             document.getElementById('url-title-input').value = '';
             document.getElementById('url-source-input').value = '';
             closeUrlModal();
@@ -768,16 +978,22 @@
 
         video.addEventListener('timeupdate', () => {
             if (!isNaN(video.duration)) {
+                const activeItem = state.playlist[state.currentIndex];
+                if (activeItem) { activeItem.progress=video.currentTime; activeItem.duration=video.duration; persistLibrary(); }
+
                 const percent = (video.currentTime / video.duration) * 100;
                 videoProgress.value = percent;
                 currentTimeEl.textContent = formatTime(video.currentTime);
                 durationEl.textContent = formatTime(video.duration);
                 checkSubtitles(video.currentTime);
+                if (Math.floor(video.currentTime) % 5 === 0) renderLibrary();
             }
         });
 
         video.addEventListener('loadedmetadata', () => {
             durationEl.textContent = formatTime(video.duration);
+            const activeItem=state.playlist[state.currentIndex];
+            if(activeItem){ activeItem.duration=video.duration; if(activeItem.progress>5 && activeItem.progress<video.duration-10){ const resumeAt=activeItem.progress; video.currentTime=resumeAt; showToast('Resuming from '+formatTime(resumeAt)); } persistLibrary(); renderLibrary(); }
         });
 
         video.addEventListener('error', () => {
@@ -1006,6 +1222,17 @@
 
         function renderVisualizer() {
             requestAnimationFrame(renderVisualizer);
+
+        // Library imports share the same queue/playback engine as the original player.
+        document.getElementById('library-file-selector').addEventListener('change', e => { handleFiles(e.target.files); e.target.value=''; });
+        document.getElementById('library-folder-selector').addEventListener('change', e => { handleFiles(e.target.files); e.target.value=''; });
+        document.getElementById('library-search').addEventListener('input', e => { state.librarySearch=e.target.value.toLowerCase().trim(); renderLibrary(); });
+        document.getElementById('library-genre').addEventListener('change', e => { state.libraryGenre=e.target.value; renderLibrary(); });
+        document.getElementById('library-theme').value = state.libraryTheme;
+        applyLibraryTheme(state.libraryTheme);
+        renderLibrary();
+        document.getElementById('remote-status').textContent = window.homeflixDesktop ? 'Desktop bridge detected. Remote service status is available in the desktop app.' : 'Website mode: phone remote needs the installed desktop app on the same Wi-Fi network.';
+
             
             audioCtx2D.clearRect(0, 0, audioCanvas.width, audioCanvas.height);
             miniCtx2D.clearRect(0, 0, miniCanvas.width, miniCanvas.height);
