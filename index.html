@@ -149,7 +149,7 @@
                 <div class="scanline-sweep"></div>
                 
                 <!-- HTML5 Video Element -->
-                <video id="cyber-video" class="w-full h-full object-contain cursor-pointer" crossorigin="anonymous" playsinline>
+                <video id="cyber-video" class="w-full h-full object-contain cursor-pointer" playsinline>
                     Your browser does not support the video tag.
                 </video>
 
@@ -753,7 +753,13 @@
         video.addEventListener('error', () => {
             if (!video.currentSrc) return;
             const code = video.error ? video.error.code : 0;
-            const reason = code === 4 ? 'Unsupported format or codec. Try MP4 (H.264/AAC) or WebM (VP8/VP9/Opus).' : 'The video could not be loaded. Check the file or stream URL.';
+            const reason = code === 2
+                ? 'Network error while loading this video. Check the connection or try another source.'
+                : code === 3
+                    ? 'The browser received the video but could not decode it. Try a different MP4 or WebM file.'
+                    : code === 4
+                        ? 'The video source was rejected. This can happen when a remote host blocks cross-origin media or the codec is unsupported. Try a local MP4 (H.264/AAC).'
+                        : 'The video could not be loaded. Check the file or stream URL.';
             state.isPlaying = false;
             updatePlayIcons();
             showToast(reason);
