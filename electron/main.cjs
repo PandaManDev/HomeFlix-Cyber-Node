@@ -144,7 +144,7 @@ function clearDiscordPresence() {
 
 function installDiscordPageBridge() {
   if (!mainWindow || mainWindow.isDestroyed()) return;
-  mainWindow.webContents.executeJavaScript(\`(() => {
+  mainWindow.webContents.executeJavaScript(`(() => {
     if (window.__homeflixDiscordBridgeInstalled) return;
     window.__homeflixDiscordBridgeInstalled = true;
     const send = (clear = false) => {
@@ -175,7 +175,7 @@ function installDiscordPageBridge() {
     attach();
     new MutationObserver(attach).observe(document.documentElement, { childList: true, subtree: true });
     document.addEventListener('visibilitychange', () => { if (!document.hidden) send(); });
-  })()\`).catch(error => console.warn('Could not attach HomeFlix Discord page bridge:', error.message));
+  })()`).catch(error => console.warn('Could not attach HomeFlix Discord page bridge:', error.message));
 }
 
 function createWindow() {
