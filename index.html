@@ -169,7 +169,7 @@
                         <i class="fa-solid fa-cloud-arrow-down"></i>
                     </div>
                     <h2 class="font-orbitron font-bold text-xl text-cyan-300 mb-2">INITIALIZE CYBER PLAYER QUEUE</h2>
-                    <p class="text-slate-400 text-sm max-w-md mb-6 font-mono">Drag & drop multiple video files (.mp4, .webm, .mkv), paste streaming URLs, or select from sample neural streams below.</p>
+                    <p class="text-slate-400 text-sm max-w-md mb-6 font-mono">Import video files or folders, drag and drop media, or add a direct stream URL.</p>
                     <div class="flex flex-wrap gap-3 justify-center">
                         <label class="px-5 py-2.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-orbitron font-semibold text-xs tracking-wider cursor-pointer shadow-lg transition flex items-center space-x-2">
                             <i class="fa-solid fa-folder-open"></i>
@@ -181,11 +181,7 @@
                             <span>IMPORT FOLDER</span>
                             <input type="file" id="folder-selector" class="hidden" webkitdirectory directory multiple accept="video/*">
                         </label>
-                        <button onclick="loadSampleStreams()" class="px-5 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-cyan-500/40 text-cyan-300 font-orbitron font-semibold text-xs tracking-wider transition flex items-center space-x-2">
-                            <i class="fa-solid fa-bolt"></i>
-                            <span>LOAD SAMPLES</span>
-                        </button>
-                    </div>
+                        </div>
                 </div>
 
                 <!-- Custom Video Controls Overlay (Appears on Hover) -->
@@ -321,7 +317,7 @@
                 <!-- Dynamically populated playlist items -->
                 <div class="text-center py-12 text-slate-500 font-mono text-xs">
                     <i class="fa-solid fa-folder-open text-2xl mb-2 text-slate-600"></i>
-                    <p>Queue is empty.<br>Drop videos or load samples to begin.</p>
+                    <p>Queue is empty.<br>Import media or add a stream URL to begin.</p>
                 </div>
             </div>
 
@@ -555,44 +551,13 @@
             }
         }
 
-        // Sample Streams
-        function loadSampleStreams() {
-            const samples = [
-                {
-                    title: 'Big Buck Bunny (Cyber Matrix Edition)',
-                    url: 'https://media.w3.org/2010/05/bunny/trailer.mp4',
-                    type: 'sample',
-                    size: 'Demo clip'
-                },
-                {
-                    title: 'Elephant Dream (Neural Node 02)',
-                    url: 'https://media.w3.org/2010/05/sintel/trailer.mp4',
-                    type: 'sample',
-                    size: 'Demo clip'
-                },
-                {
-                    title: 'Sintel (Cyberpunk Rebellion 4K)',
-                    url: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
-                    type: 'sample',
-                    size: 'Demo clip'
-                }
-            ];
-            
-            samples.forEach(s => state.playlist.push(s));
-            renderPlaylist();
-            showToast('Loaded 3 sample neural streams into queue.');
-            if (state.playlist.length === samples.length) {
-                selectQueueItem(0);
-            }
-        }
-
         function renderPlaylist() {
             queueCountEl.textContent = state.playlist.length;
             if (state.playlist.length === 0) {
                 playlistItemsEl.innerHTML = `
                     <div class="text-center py-12 text-slate-500 font-mono text-xs">
                         <i class="fa-solid fa-folder-open text-2xl mb-2 text-slate-600"></i>
-                        <p>Queue is empty.<br>Drop videos or load samples to begin.</p>
+                        <p>Queue is empty.<br>Import media or add a stream URL to begin.</p>
                     </div>
                 `;
                 emptyStateOverlay.classList.remove('hidden');
