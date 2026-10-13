@@ -8,7 +8,8 @@
     "start": "electron .",
     "make-icon": "node scripts/make-icon.cjs",
     "dist": "npm run make-icon && electron-builder --win nsis --publish never",
-    "dist:dir": "npm run make-icon && electron-builder --win dir"
+    "dist:dir": "npm run make-icon && electron-builder --win dir",
+    "dist:linux": "npm run make-icon && electron-builder --linux AppImage deb --x64 --publish never"
   },
   "dependencies": {
     "express": "^4.21.2"
@@ -53,6 +54,27 @@
       "runAfterFinish": true,
       "deleteAppDataOnUninstall": false
     },
-    "artifactName": "HomeFlix-Cyber-Node-Setup-${version}.${ext}"
+    "artifactName": "HomeFlix-Cyber-Node-Setup-${version}.${ext}",
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "AudioVideo",
+      "synopsis": "Personal media library and desktop player",
+      "description": "HomeFlix Cyber Node personal media library and desktop player",
+      "icon": "build/icons",
+      "maintainer": "PandaManDev"
+    }
   }
 }
