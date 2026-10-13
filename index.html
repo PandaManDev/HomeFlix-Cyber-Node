@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#050816">
+<meta name="description" content="HomeFlix Cyber Node — your personal media command center.">
+<title>HomeFlix Cyber Node</title>
+<style>
+:root{color-scheme:dark;--bg:#050816;--panel:#0c1428;--line:#1c3150;--cyan:#37e8ff;--blue:#5288ff;--pink:#ed4cff;--muted:#9aacc7}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -20%,#152d59 0,transparent 55%),var(--bg);color:#f3f7ff;font:16px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
+header{position:sticky;top:0;z-index:5;background:#050816d9;backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+.nav{max-width:1200px;margin:auto;padding:13px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:13px;min-width:0}.mark{width:48px;height:48px;flex:none;filter:drop-shadow(0 0 12px #24dfff66)}
+.brand-name{font-weight:900;letter-spacing:.1em;font-size:clamp(15px,2.3vw,22px);background:linear-gradient(90deg,var(--cyan),#fff 55%,var(--pink));background-clip:text;color:transparent}
+.brand-sub{display:block;font-size:10px;letter-spacing:.3em;color:#9fb8d9;font-weight:700;margin-top:1px}.version{font:11px ui-monospace,monospace;color:var(--cyan);border:1px solid #1b6881;background:#062333;padding:5px 8px;border-radius:6px;white-space:nowrap}
+main{max-width:1200px;margin:auto;padding:64px 22px 40px}.eyebrow{color:var(--cyan);font:12px ui-monospace,monospace;letter-spacing:.22em;text-transform:uppercase}.hero{text-align:center;max-width:800px;margin:0 auto 44px}.hero h1{font-size:clamp(34px,7vw,68px);line-height:1.04;letter-spacing:-.04em;margin:14px 0 18px}.glow{background:linear-gradient(90deg,#43eaff,#8b9dff 52%,#ee65fa);background-clip:text;color:transparent}.hero p{color:var(--muted);font-size:clamp(15px,2vw,18px);max-width:620px;margin:0 auto 25px}
+.actions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 18px;border-radius:9px;text-decoration:none;font-weight:750;border:1px solid #2b5578;color:#dffbff;background:#0a2335;cursor:pointer}.btn.primary{background:linear-gradient(100deg,#06a9cb,#4265ff);border-color:transparent;color:white;box-shadow:0 0 25px #277bff35}.section-title{display:flex;align-items:center;gap:12px;font-size:17px;margin:0 0 16px}.section-title:after{content:"";height:1px;flex:1;background:var(--line)}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.card{border:1px solid var(--line);background:linear-gradient(145deg,#0d1930dd,#081020);border-radius:14px;padding:22px;min-height:155px}.card-icon{width:42px;height:42px;border-radius:10px;display:grid;place-items:center;background:#092b3c;border:1px solid #14506a;color:var(--cyan);font-size:21px}.card h2{font-size:16px;margin:14px 0 6px}.card p{font-size:14px;color:var(--muted);margin:0}.status{display:inline-flex;align-items:center;gap:7px;color:#a4fbd2;font:11px ui-monospace,monospace;margin-top:18px}.dot{width:7px;height:7px;border-radius:50%;background:#38e7a6;box-shadow:0 0 10px #38e7a6}
+footer{max-width:1200px;margin:20px auto 0;padding:22px;border-top:1px solid var(--line);color:#7185a4;font:12px ui-monospace,monospace;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+@media(max-width:700px){.version{display:none}main{padding-top:45px}.grid{grid-template-columns:1fr}.card{min-height:unset}.nav{padding:10px 15px}.mark{width:40px;height:40px}}
+</style>
+</head>
+<body>
+<header><nav class="nav" aria-label="Main navigation">
+<a class="brand" href="#" aria-label="HomeFlix Cyber Node home" style="text-decoration:none">
+<svg class="mark" viewBox="0 0 64 64" role="img" aria-label="HomeFlix logo">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#32f4ff"/><stop offset=".52" stop-color="#5288ff"/><stop offset="1" stop-color="#f04cff"/></linearGradient></defs>
+<path d="M6 29 31 7l25 22v25a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3Z" fill="#09162b" stroke="url(#g)" stroke-width="2.5" stroke-linejoin="round"/>
+<path d="M24 22v23l20-11.5Z" fill="url(#g)"/><path d="M13 48h38" stroke="#36edff" stroke-width="2" stroke-linecap="round"/>
+<path d="M16 14 22 9M47 14l-5-5" stroke="#f04cff" stroke-width="2" stroke-linecap="round"/>
+</svg>
+<span><span class="brand-name">HOMEFLIX</span><span class="brand-sub">CYBER NODE</span></span></a>
+<span class="version">v4.8 · CYBER NODE</span>
+</nav></header>
+<main>
+<section class="hero">
+<div class="eyebrow">◈ PERSONAL MEDIA COMMAND CENTER</div>
+<h1>Your media.<br><span class="glow">Your universe.</span></h1>
+<p>Welcome to HomeFlix Cyber Node — a sleek launchpad for your personal media library, playlists, and viewing setup.</p>
+<div class="actions"><a class="btn primary" href="#workspace">Open workspace&nbsp; ↗</a><a class="btn" href="#features">Explore features</a></div>
+<div class="status"><span class="dot"></span> NODE INTERFACE ONLINE</div>
+</section>
+<section id="workspace"><h2 class="section-title">Workspace overview</h2><div class="grid">
+<article class="card"><div class="card-icon">▣</div><h2>Media Library</h2><p>Your media hub is ready for your library and favorite content sources.</p></article>
+<article class="card"><div class="card-icon">▷</div><h2>Playback Center</h2><p>A clean space to organize your viewing and playback experience.</p></article>
+<article class="card"><div class="card-icon">⌘</div><h2>Cyber Controls</h2><p>Quick access to your HomeFlix setup, with a responsive neon interface.</p></article>
+</div></section>
+<section id="features" style="margin-top:38px"><h2 class="section-title">System features</h2><div class="grid">
+<article class="card"><div class="card-icon">⚡</div><h2>Fast interface</h2><p>Lightweight static HTML and CSS, ready to deploy on Vercel.</p></article>
+<article class="card"><div class="card-icon">▤</div><h2>Responsive layout</h2><p>Designed to fit desktop, tablet, and mobile screens.</p></article>
+<article class="card"><div class="card-icon">◇</div><h2>Neon identity</h2><p>Custom inline vector logo with cyan, electric blue, and magenta accents.</p></article>
+</div></section>
+</main>
+<footer><span>HOMEFLIX CYBER NODE · V4.8</span><span>PERSONAL MEDIA INTERFACE</span></footer>
+</body></html>
