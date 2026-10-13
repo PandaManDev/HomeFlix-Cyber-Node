@@ -1227,36 +1227,7 @@
         function renderVisualizer() {
             requestAnimationFrame(renderVisualizer);
 
-        // Library imports share the same queue/playback engine as the original player.
-        document.getElementById('library-file-selector').addEventListener('change', e => { handleFiles(e.target.files); e.target.value=''; });
-        document.getElementById('library-folder-selector').addEventListener('change', e => { handleFiles(e.target.files); e.target.value=''; });
-        document.getElementById('library-search').addEventListener('input', e => { state.librarySearch=e.target.value.toLowerCase().trim(); renderLibrary(); });
-        document.getElementById('library-genre').addEventListener('change', e => { state.libraryGenre=e.target.value; renderLibrary(); });
-        document.getElementById('library-theme').value = state.libraryTheme;
-        applyLibraryTheme(state.libraryTheme);
-        renderLibrary();
-        if (window.homeflixDesktop) {
-            document.getElementById('remote-status').textContent = 'Desktop remote is available. Open Settings to view its pairing address and PIN.';
-            window.homeflixDesktop.getRemoteInfo().then(info => {
-                if (info && info.url) document.getElementById('remote-status').textContent = 'Remote: ' + info.url + ' · PIN: ' + info.pin;
-            }).catch(() => {});
-            window.homeflixDesktop.onRemoteCommand(command => {
-                if (command.action==='toggle') togglePlay();
-                else if (command.action==='play') { video.play().catch(()=>{}); state.isPlaying=true; updatePlayIcons(); }
-                else if (command.action==='pause') { video.pause(); state.isPlaying=false; updatePlayIcons(); }
-                else if (command.action==='seek') video.currentTime=Math.max(0,Math.min(video.duration||0,video.currentTime+(Number(command.value)||0)));
-                else if (command.action==='volume') { video.volume=Math.max(0,Math.min(1,Number(command.value)||0)); volumeSlider.value=video.volume; volumeLabel.textContent=Math.round(video.volume*100)+'%'; }
-                else if (command.action==='mute') toggleMute();
-                else if (command.action==='next') playNext();
-                else if (command.action==='previous') selectQueueItem(Math.max(0,state.currentIndex-1));
-                else if (command.action==='fullscreen') toggleFullscreen();
-                else if (command.action==='status') {
-                    window.homeflixDesktop.sendRemoteStatus({title:currentTitleEl.textContent,playing:!video.paused,currentTime:video.currentTime,duration:video.duration||0,volume:video.volume});
-                }
-            });
-        } else {
-            document.getElementById('remote-status').textContent = 'Website mode: phone remote needs the installed desktop app on the same Wi-Fi network.';
-        }
+
 
             
             audioCtx2D.clearRect(0, 0, audioCanvas.width, audioCanvas.height);
@@ -1304,6 +1275,37 @@
 
                 x += barWidth + 1;
             }
+        }
+
+        // Library imports share the same queue/playback engine as the original player.
+        document.getElementById('library-file-selector').addEventListener('change', e => { handleFiles(e.target.files); e.target.value=''; });
+        document.getElementById('library-folder-selector').addEventListener('change', e => { handleFiles(e.target.files); e.target.value=''; });
+        document.getElementById('library-search').addEventListener('input', e => { state.librarySearch=e.target.value.toLowerCase().trim(); renderLibrary(); });
+        document.getElementById('library-genre').addEventListener('change', e => { state.libraryGenre=e.target.value; renderLibrary(); });
+        document.getElementById('library-theme').value = state.libraryTheme;
+        applyLibraryTheme(state.libraryTheme);
+        renderLibrary();
+        if (window.homeflixDesktop) {
+            document.getElementById('remote-status').textContent = 'Desktop remote is available. Open Settings to view its pairing address and PIN.';
+            window.homeflixDesktop.getRemoteInfo().then(info => {
+                if (info && info.url) document.getElementById('remote-status').textContent = 'Remote: ' + info.url + ' · PIN: ' + info.pin;
+            }).catch(() => {});
+            window.homeflixDesktop.onRemoteCommand(command => {
+                if (command.action==='toggle') togglePlay();
+                else if (command.action==='play') { video.play().catch(()=>{}); state.isPlaying=true; updatePlayIcons(); }
+                else if (command.action==='pause') { video.pause(); state.isPlaying=false; updatePlayIcons(); }
+                else if (command.action==='seek') video.currentTime=Math.max(0,Math.min(video.duration||0,video.currentTime+(Number(command.value)||0)));
+                else if (command.action==='volume') { video.volume=Math.max(0,Math.min(1,Number(command.value)||0)); volumeSlider.value=video.volume; volumeLabel.textContent=Math.round(video.volume*100)+'%'; }
+                else if (command.action==='mute') toggleMute();
+                else if (command.action==='next') playNext();
+                else if (command.action==='previous') selectQueueItem(Math.max(0,state.currentIndex-1));
+                else if (command.action==='fullscreen') toggleFullscreen();
+                else if (command.action==='status') {
+                    window.homeflixDesktop.sendRemoteStatus({title:currentTitleEl.textContent,playing:!video.paused,currentTime:video.currentTime,duration:video.duration||0,volume:video.volume});
+                }
+            });
+        } else {
+            document.getElementById('remote-status').textContent = 'Website mode: phone remote needs the installed desktop app on the same Wi-Fi network.';
         }
 
         requestAnimationFrame(renderVisualizer);
