@@ -14,7 +14,7 @@ on:
       - ".github/workflows/build-windows.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-windows:
@@ -30,10 +30,21 @@ jobs:
         run: npm install
       - name: Build Windows NSIS installer
         run: npm run dist
-      - name: Upload installer
+      - name: Upload installer as a workflow artifact
         uses: actions/upload-artifact@v4
         with:
           name: HomeFlix-Cyber-Node-Windows-Installer
           path: release/*.exe
           if-no-files-found: error
           retention-days: 14
+      - name: Publish installer download for the website
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v5.0.0
+          name: HomeFlix Cyber Node v5.0.0
+          files: release/HomeFlix-Cyber-Node-Setup-5.0.0.exe
+          overwrite_files: true
+          make_latest: true
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
