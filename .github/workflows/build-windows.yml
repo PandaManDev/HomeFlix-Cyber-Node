@@ -8,6 +8,7 @@ on:
       - "index.html"
       - "electron/**"
       - "scripts/**"
+      - "tools/**"
       - "build/**"
       - "package.json"
       - "package-lock.json"
@@ -30,10 +31,11 @@ jobs:
         run: npm install
       - name: Build Windows NSIS installer
         run: npm run dist
-      - name: Upload installer as a workflow artifact
+      - name: Publish standalone uninstaller executable
+        run: dotnet publish tools/HomeFlixUninstaller/HomeFlixUninstaller.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o release/uninstaller\n      - name: Stage uninstaller executable\n        run: Copy-Item release/uninstaller/HomeFlix-Uninstaller.exe release/HomeFlix-Uninstaller.exe\n      - name: Upload installer and uninstaller as workflow artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: HomeFlix-Cyber-Node-Windows-Installer
+          name: HomeFlix-Cyber-Node-Windows-Installers
           path: release/*.exe
           if-no-files-found: error
           retention-days: 14
@@ -42,7 +44,9 @@ jobs:
         with:
           tag_name: v5.0.0
           name: HomeFlix Cyber Node v5.0.0
-          files: release/HomeFlix-Cyber-Node-Setup-5.0.0.exe
+          files: |
+            release/HomeFlix-Cyber-Node-Setup-5.0.0.exe
+            release/HomeFlix-Uninstaller.exe
           overwrite_files: true
           make_latest: true
           fail_on_unmatched_files: true
