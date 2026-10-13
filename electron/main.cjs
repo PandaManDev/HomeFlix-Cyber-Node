@@ -15,6 +15,7 @@ let mainWindow;
 let remoteServer;
 let discordClient;
 let discordReady = false;
+let discordRetryTimer;
 let lastDiscordUpdate = 0;
 let lastDiscordKey = '';
 let remoteStatus = { title: 'HomeFlix', playing: false, currentTime: 0, duration: 0, volume: 1 };
@@ -76,7 +77,16 @@ function cleanPresenceText(value, fallback, max = 128) {
   return (text || fallback).slice(0, max);
 }
 
+function scheduleDiscordReconnect() {
+  if (discordRetryTimer || app.isQuitting) return;
+  discordRetryTimer = setTimeout(() => {
+    discordRetryTimer = null;
+    startDiscordRPC();
+  }, 10000);
+}
+
 async function startDiscordRPC() {
+  if (discordClient && discordReady) return;
   try {
     DiscordRPC.register(DISCORD_CLIENT_ID);
     discordClient = new DiscordRPC.Client({ transport: 'ipc' });
@@ -87,13 +97,17 @@ async function startDiscordRPC() {
     });
     discordClient.on('disconnected', () => {
       discordReady = false;
-      console.log('Discord desktop client disconnected; Rich Presence paused.');
+      console.log('Discord desktop client disconnected; retrying Rich Presence connection.');
+      discordClient = null;
+      scheduleDiscordReconnect();
     });
     discordClient.on('error', error => console.warn('Discord Rich Presence:', error.message));
     await discordClient.login({ clientId: DISCORD_CLIENT_ID });
   } catch (error) {
     discordReady = false;
+    discordClient = null;
     console.warn('Discord Rich Presence unavailable. Make sure the Discord desktop app is running:', error.message);
+    scheduleDiscordReconnect();
   }
 }
 
@@ -127,6 +141,43 @@ function clearDiscordPresence() {
   lastDiscordKey = '';
 }
 
+
+function installDiscordPageBridge() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.webContents.executeJavaScript(\`(() => {
+    if (window.__homeflixDiscordBridgeInstalled) return;
+    window.__homeflixDiscordBridgeInstalled = true;
+    const send = (clear = false) => {
+      const api = window.homeflixDesktop;
+      if (!api || typeof api.sendDiscordPresence !== 'function') return;
+      const video = document.querySelector('#cyber-video, video');
+      const titleNode = document.querySelector('#current-title, [data-media-title], .player-title');
+      const title = (titleNode && titleNode.textContent || document.title || 'HomeFlix Cyber Node').trim();
+      if (clear || !video || !video.currentSrc) {
+        api.sendDiscordPresence({ clear: true });
+        return;
+      }
+      api.sendDiscordPresence({
+        title: title.slice(0, 128),
+        playing: !video.paused && !video.ended,
+        currentTime: Number.isFinite(video.currentTime) ? video.currentTime : 0,
+        duration: Number.isFinite(video.duration) ? video.duration : 0
+      });
+    };
+    const attach = () => {
+      const video = document.querySelector('#cyber-video, video');
+      if (!video || video.__homeflixDiscordEvents) return;
+      video.__homeflixDiscordEvents = true;
+      ['play', 'playing', 'pause', 'timeupdate', 'loadedmetadata', 'seeked'].forEach(eventName => video.addEventListener(eventName, () => send()));
+      video.addEventListener('ended', () => send(true));
+      send();
+    };
+    attach();
+    new MutationObserver(attach).observe(document.documentElement, { childList: true, subtree: true });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) send(); });
+  })()\`).catch(error => console.warn('Could not attach HomeFlix Discord page bridge:', error.message));
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1440, height: 920, minWidth: 900, minHeight: 620,
@@ -148,6 +199,7 @@ function createWindow() {
     const allowed = url.startsWith(WEB_URL) || url.startsWith('file://');
     if (!allowed) { event.preventDefault(); shell.openExternal(url); }
   });
+  mainWindow.webContents.on('did-finish-load', installDiscordPageBridge);
   mainWindow.loadURL(WEB_URL);
   mainWindow.webContents.on('did-fail-load', (_event, code, description, validatedURL, isMainFrame) => {
     if (isMainFrame && !validatedURL.startsWith('file://') && code !== -3) {
@@ -172,6 +224,8 @@ app.whenReady().then(() => {
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('before-quit', () => {
+  app.isQuitting = true;
+  if (discordRetryTimer) clearTimeout(discordRetryTimer);
   clearDiscordPresence();
   if (discordClient) { try { discordClient.destroy(); } catch (_) {} }
   if (remoteServer) remoteServer.close();
