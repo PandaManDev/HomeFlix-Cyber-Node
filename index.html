@@ -869,6 +869,7 @@
             
             video.src = item.url;
             video.load();
+            syncDiscordPresence();
             currentTitleEl.textContent = item.title;
             currentMetaEl.textContent = `Node Source: ${item.type.toUpperCase()} | Index #${index + 1}`;
             
@@ -922,6 +923,7 @@
             state.currentIndex = 0;
             video.pause();
             video.src = '';
+            syncDiscordPresence(true);
             currentTitleEl.textContent = 'No Active Node Stream';
             currentMetaEl.textContent = 'Ready for queue ingestion...';
             state.isPlaying = false;
@@ -980,13 +982,29 @@
         }
 
         // Video Controls & Timeline Scrubbing
+        function syncDiscordPresence(clear = false) {
+            if (!window.homeflixDesktop || typeof window.homeflixDesktop.sendDiscordPresence !== 'function') return;
+            if (clear || state.playlist.length === 0 || !video.currentSrc) {
+                window.homeflixDesktop.sendDiscordPresence({ clear: true });
+                return;
+            }
+            const item = state.playlist[state.currentIndex];
+            window.homeflixDesktop.sendDiscordPresence({
+                title: item?.title || currentTitleEl.textContent || 'HomeFlix',
+                playing: !video.paused && !video.ended,
+                currentTime: Number.isFinite(video.currentTime) ? video.currentTime : 0,
+                duration: Number.isFinite(video.duration) ? video.duration : 0
+            });
+        }
+
         video.addEventListener('click', togglePlay);
-        video.addEventListener('play', () => { state.isPlaying = true; updatePlayIcons(); });
-        video.addEventListener('pause', () => { state.isPlaying = false; updatePlayIcons(); });
-        video.addEventListener('ended', playNext);
+        video.addEventListener('play', () => { state.isPlaying = true; updatePlayIcons(); syncDiscordPresence(); });
+        video.addEventListener('pause', () => { state.isPlaying = false; updatePlayIcons(); syncDiscordPresence(); });
+        video.addEventListener('ended', () => { syncDiscordPresence(true); playNext(); });
 
         let lastProgressSave = 0;
         video.addEventListener('timeupdate', () => {
+            syncDiscordPresence();
             if (!isNaN(video.duration)) {
                 const activeItem = state.playlist[state.currentIndex];
                 if (activeItem) {
@@ -1003,6 +1021,7 @@
         });
 
         video.addEventListener('loadedmetadata', () => {
+            syncDiscordPresence();
             durationEl.textContent = formatTime(video.duration);
             const activeItem=state.playlist[state.currentIndex];
             if(activeItem){ activeItem.duration=video.duration; if(activeItem.progress>5 && activeItem.progress<video.duration-10){ const resumeAt=activeItem.progress; video.currentTime=resumeAt; showToast('Resuming from '+formatTime(resumeAt)); } persistLibrary(); renderLibrary(); }
