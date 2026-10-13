@@ -56,7 +56,10 @@
       "createStartMenuShortcut": true,
       "shortcutName": "HomeFlix Cyber Node",
       "runAfterFinish": true,
-      "deleteAppDataOnUninstall": false
+      "deleteAppDataOnUninstall": false,
+      "installerIcon": "build/homeflix.ico",
+      "uninstallerIcon": "build/homeflix.ico",
+      "installerHeaderIcon": "build/homeflix.ico"
     },
     "artifactName": "HomeFlix-Cyber-Node-Setup-${version}.${ext}",
     "linux": {
