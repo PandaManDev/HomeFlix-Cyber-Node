@@ -215,10 +215,8 @@
                 <label class="block text-sm text-zinc-300 mb-2">Appearance</label><select id="library-theme" class="w-full rounded-lg bg-black border border-white/15 p-3 text-white mb-5"><option value="netflix">Netflix Red</option><option value="cyber">Cyber Neon</option><option value="midnight">Midnight Blue</option></select>
                 <div class="rounded-xl bg-black/30 border border-white/10 p-4 mb-5"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-red-600/20 flex items-center justify-center text-red-400"><i class="fa-solid fa-mobile-screen-button"></i></div><div class="flex-1"><h4 class="font-semibold text-white">Phone remote</h4><p class="text-xs text-zinc-500 mt-1">Remote control works in the installed desktop app when its local remote service is available.</p></div></div><p id="remote-status" class="text-sm text-zinc-400 mt-3">Checking desktop support…</p><button onclick="showRemoteInfo()" class="mt-3 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-white text-sm">Remote control info</button></div>
                 <div class="rounded-xl bg-black/30 border border-white/10 p-4 mb-5">
-                    <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-indigo-600/20 flex items-center justify-center text-indigo-300"><i class="fa-brands fa-discord"></i></div><div class="flex-1"><h4 class="font-semibold text-white">Discord status from the website</h4><p class="text-xs text-zinc-400 mt-1">Keep HomeFlix Cyber Node desktop app open with Discord running. Enter the pairing PIN shown in the desktop app's Settings to let this browser send the video title to Discord.</p></div></div>
-                    <label for="discord-web-pin" class="block text-xs text-zinc-400 mt-4 mb-1">Desktop pairing PIN</label>
-                    <div class="flex gap-2"><input id="discord-web-pin" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="6-digit PIN" class="min-w-0 flex-1 rounded-lg bg-black border border-white/15 p-2.5 text-white text-sm outline-none focus:border-indigo-400"><button onclick="connectDiscordWebBridge()" class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold">Connect</button><button onclick="disconnectDiscordWebBridge()" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-white text-sm">Disconnect</button></div>
-                    <p id="discord-web-status" role="status" class="text-xs text-zinc-400 mt-3">Not connected. Website-only Rich Presence requires the desktop companion app.</p>
+                    <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-indigo-600/20 flex items-center justify-center text-indigo-300"><i class="fa-brands fa-discord"></i></div><div class="flex-1"><h4 class="font-semibold text-white">Automatic Discord Rich Presence</h4><p class="text-xs text-zinc-400 mt-1">HomeFlix automatically looks for the desktop companion and its Discord connection. No PIN or manual pairing is needed.</p></div></div>
+                    <p id="discord-web-status" role="status" class="text-xs text-zinc-400 mt-3">Looking for the HomeFlix desktop companion…</p>
                 </div>
                 <div class="flex justify-end gap-2"><button onclick="closeLibrarySettings()" class="px-4 py-2 rounded-lg bg-white/10 text-white">Cancel</button><button onclick="saveLibrarySettings()" class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold">Save settings</button></div>
             </div>
@@ -1003,31 +1001,25 @@
             const el = document.getElementById('discord-web-status');
             if (el) { el.textContent = message; el.className = 'text-xs mt-3 ' + (connected ? 'text-emerald-300' : 'text-zinc-400'); }
         }
-        async function connectDiscordWebBridge() {
-            const pin = document.getElementById('discord-web-pin').value.trim();
-            if (!/^\d{6}$/.test(pin)) { setDiscordWebStatus('Enter the 6-digit PIN shown in desktop Settings.'); return; }
+        async function detectDiscordBridge() {
+            if (window.homeflixDesktop) {
+                setDiscordWebStatus('HomeFlix desktop app detected. Discord Rich Presence connects automatically when Discord is running.', true);
+                return true;
+            }
             try {
-                const response = await fetch(DISCORD_WEB_BRIDGE_URL, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'ping', pin })
-                });
-                if (!response.ok) throw new Error(response.status === 401 ? 'PIN not accepted. Check the desktop app PIN.' : 'Desktop bridge is unavailable.');
-                localStorage.setItem('homeflix-discord-web-pin', pin);
-                setDiscordWebStatus('Connected to the desktop bridge. Play a video to update Discord.', true);
-                lastWebDiscordKey = '';
-                syncDiscordPresence();
-            } catch (error) {
-                setDiscordWebStatus('Could not connect. Keep the desktop app open, allow local-network access if prompted, and try again. ' + error.message);
+                const response = await fetch(DISCORD_WEB_BRIDGE_URL + '/status', { method: 'GET', cache: 'no-store' });
+                if (!response.ok) throw new Error('bridge unavailable');
+                const result = await response.json();
+                setDiscordWebStatus(result.discordReady
+                    ? 'Discord detected — Rich Presence is ready. Play a video to show it on your profile.'
+                    : 'HomeFlix desktop app detected, waiting for Discord desktop to connect.', !!result.discordReady);
+                return true;
+            } catch (_) {
+                setDiscordWebStatus('Waiting for the HomeFlix desktop companion and Discord desktop app…');
+                return false;
             }
         }
-        function disconnectDiscordWebBridge() {
-            localStorage.removeItem('homeflix-discord-web-pin');
-            lastWebDiscordKey = '';
-            setDiscordWebStatus('Disconnected. The website will no longer send playback updates.');
-        }
         async function sendWebDiscordPresence(presence, force = false) {
-            const pin = localStorage.getItem('homeflix-discord-web-pin');
-            if (!pin) return;
             const key = presence.clear ? 'clear' : [presence.title, presence.playing, Math.floor((presence.currentTime || 0) / 15), Math.floor(presence.duration || 0)].join('|');
             const now = Date.now();
             if (!force && key === lastWebDiscordKey && now - lastWebDiscordSentAt < 12000) return;
@@ -1035,19 +1027,24 @@
             lastWebDiscordKey = key;
             lastWebDiscordSentAt = now;
             try {
-                const response = await fetch(DISCORD_WEB_BRIDGE_URL, {
+                const response = await fetch(DISCORD_WEB_BRIDGE_URL + '/auto', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ pin, presence })
+                    body: JSON.stringify({ presence })
                 });
-                if (response.status === 401) {
-                    localStorage.removeItem('homeflix-discord-web-pin');
-                    setDiscordWebStatus('Connection expired or PIN changed. Connect again.');
-                } else if (!response.ok) setDiscordWebStatus('Desktop bridge did not accept the playback update.');
-                else setDiscordWebStatus('Connected — Discord status follows the video playing in this browser.', true);
+                if (!response.ok) {
+                    setDiscordWebStatus('Waiting for the HomeFlix desktop companion and Discord desktop app…');
+                    return;
+                }
+                const result = await response.json();
+                setDiscordWebStatus(result.discordReady
+                    ? 'Connected automatically — Discord shows your HomeFlix playback.'
+                    : 'HomeFlix found, waiting for Discord desktop to connect.', !!result.discordReady);
             } catch (_) {
-                setDiscordWebStatus('Desktop app is offline or browser local-network access is blocked. Reconnect when it is running.');
+                setDiscordWebStatus('Waiting for the HomeFlix desktop companion and Discord desktop app…');
             }
         }
+        setInterval(detectDiscordBridge, 5000);
+        detectDiscordBridge();
         function syncDiscordPresence(clear = false) {
             const item = state.playlist[state.currentIndex];
             const presence = clear || state.playlist.length === 0 || !video.currentSrc
