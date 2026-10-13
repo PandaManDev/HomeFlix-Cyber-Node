@@ -47,10 +47,10 @@ jobs:
       - name: Publish installer and uninstaller downloads
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v5.0.0
-          name: HomeFlix Cyber Node v5.0.0
+          tag_name: v4.8.0
+          name: HomeFlix Cyber Node v4.8.0
           files: |
-            release/HomeFlix-Cyber-Node-Setup-5.0.0.exe
+            release/HomeFlix-Cyber-Node-Setup-4.8.0.exe
             release/HomeFlix-Uninstaller.exe
           overwrite_files: true
           make_latest: true
