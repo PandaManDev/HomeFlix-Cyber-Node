@@ -31,15 +31,20 @@ jobs:
         run: npm install
       - name: Build Windows NSIS installer
         run: npm run dist
-      - name: Publish standalone uninstaller executable
-        run: dotnet publish tools/HomeFlixUninstaller/HomeFlixUninstaller.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o release/uninstaller\n      - name: Stage uninstaller executable\n        run: Copy-Item release/uninstaller/HomeFlix-Uninstaller.exe release/HomeFlix-Uninstaller.exe\n      - name: Upload installer and uninstaller as workflow artifacts
+      - name: Build standalone uninstaller executable
+        shell: pwsh
+        run: dotnet publish tools/HomeFlixUninstaller/HomeFlixUninstaller.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o release/uninstaller
+      - name: Stage uninstaller executable
+        shell: pwsh
+        run: Copy-Item release/uninstaller/HomeFlix-Uninstaller.exe release/HomeFlix-Uninstaller.exe
+      - name: Upload installer and uninstaller as workflow artifacts
         uses: actions/upload-artifact@v4
         with:
           name: HomeFlix-Cyber-Node-Windows-Installers
           path: release/*.exe
           if-no-files-found: error
           retention-days: 14
-      - name: Publish installer download for the website
+      - name: Publish installer and uninstaller downloads
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v5.0.0
