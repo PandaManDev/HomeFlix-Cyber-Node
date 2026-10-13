@@ -9,7 +9,9 @@
     "make-icon": "node scripts/make-icon.cjs",
     "dist": "npm run make-icon && electron-builder --win nsis --publish never",
     "dist:dir": "npm run make-icon && electron-builder --win dir",
-    "dist:linux": "npm run make-icon && electron-builder --linux AppImage deb --x64 --publish never"
+    "dist:linux": "npm run make-icon && electron-builder --linux AppImage deb --x64 --publish never",
+    "deploy:cloudflare": "wrangler deploy --config wrangler.jsonc",
+    "preview:cloudflare": "wrangler dev --config wrangler.jsonc"
   },
   "dependencies": {
     "express": "^4.21.2",
