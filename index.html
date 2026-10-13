@@ -541,9 +541,10 @@
             item.genre=item.genre || saved.genre || inferGenre(item.title);
             item.addedAt=item.addedAt || saved.addedAt || Date.now();
             item.duration=item.duration || saved.duration || 0;
-            item.progress=typeof item.progress === 'number' ? item.progress : (saved.progress || 0);
-            item.favorite=typeof item.favorite === 'boolean' ? item.favorite : !!saved.favorite;
-            item.watchlist=typeof item.watchlist === 'boolean' ? item.watchlist : !!saved.watchlist;
+            if (!item.duration) item.duration=saved.duration || 0;
+            if (!item.progress) item.progress=saved.progress || 0;
+            if (!item.favorite) item.favorite=!!saved.favorite;
+            if (!item.watchlist) item.watchlist=!!saved.watchlist;
             if (!item.thumbnail && saved.thumbnail) item.thumbnail=saved.thumbnail;
         }
         function setLibraryView(view) {
@@ -976,10 +977,14 @@
         video.addEventListener('pause', () => { state.isPlaying = false; updatePlayIcons(); });
         video.addEventListener('ended', playNext);
 
+        let lastProgressSave = 0;
         video.addEventListener('timeupdate', () => {
             if (!isNaN(video.duration)) {
                 const activeItem = state.playlist[state.currentIndex];
-                if (activeItem) { activeItem.progress=video.currentTime; activeItem.duration=video.duration; persistLibrary(); }
+                if (activeItem) {
+                    activeItem.progress=video.currentTime; activeItem.duration=video.duration;
+                    if (Date.now() - lastProgressSave > 5000) { lastProgressSave=Date.now(); persistLibrary(); renderLibrary(); }
+                }
 
                 const percent = (video.currentTime / video.duration) * 100;
                 videoProgress.value = percent;
