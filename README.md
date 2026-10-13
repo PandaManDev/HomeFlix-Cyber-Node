@@ -1,7 +1,3 @@
-# HomeFlix Cyber Node
-
-HomeFlix is a personal media player and Netflix-inspired library dashboard. Web version: https://homeflix-cyber-node.vercel.app/
-
 ## Features
 
 - Netflix-inspired media library with Recently Added, search, genre filters, grid/list views, Favorites, My List, and Continue Watching.
