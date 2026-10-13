@@ -1,0 +1,30 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "homeflix",
+  "compatibility_date": "2026-10-06",
+  "workers_dev": true,
+  "assets": {
+    "directory": ".",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+    "exclude": [
+      "**/node_modules/**",
+      "**/.git/**",
+      "**/.wrangler/**",
+      "**/.github/**",
+      "electron/**",
+      "android/**",
+      "scripts/**",
+      "build/**",
+      "release/**",
+      "package.json",
+      "package-lock.json",
+      "bun.lock",
+      "bun.lockb",
+      "README.md",
+      ".gitignore",
+      "wrangler.jsonc"
+    ]
+  }
+}
