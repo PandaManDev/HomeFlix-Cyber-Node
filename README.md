@@ -41,7 +41,18 @@ npm run dist:linux
 
 The x64 AppImage and Debian package are written to `release/`. The AppImage is portable on most mainstream Linux distributions; the `.deb` package is intended for Debian, Ubuntu, Linux Mint, and compatible systems. Run the AppImage with execute permission, for example `chmod +x release/*.AppImage` and then `./release/*.AppImage`.
 
-GitHub Actions builds both Linux packages automatically when relevant source files change on `main` and attaches them to the `v5.0.0` release after a successful build.
+### Linux uninstaller
+
+The standalone `tools/uninstall-homeflix-linux.sh` script is included with the Linux release downloads. Download it, then run:
+
+```bash
+chmod +x uninstall-homeflix-linux.sh
+./uninstall-homeflix-linux.sh
+```
+
+It offers to remove the Debian package (using administrator permission when needed), clears matching per-user desktop shortcuts, and asks separately before deleting HomeFlix settings/cache. Personal settings are kept by default. Portable AppImage files are not deleted automatically; remove the downloaded file yourself when finished.
+
+GitHub Actions builds both Linux packages and publishes the Linux uninstaller script as a workflow artifact and release download after a successful build.
 
 The app loads the production website first and falls back to the packaged `index.html` if the website cannot be reached. The phone remote listens on TCP port 47831 by default. Keep this port on a trusted private network; do not expose it to the public internet.
 
