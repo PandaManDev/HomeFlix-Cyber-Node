@@ -2,6 +2,9 @@ const { app, BrowserWindow, shell, ipcMain } = require('electron');
 const path = require('node:path');
 const os = require('node:os');
 const express = require('express');
+const DiscordRPC = require('discord-rpc');
+
+const DISCORD_CLIENT_ID = '1559626336795107379';
 
 const APP_ID = 'com.homeflix.cybernode';
 const WEB_URL = 'https://homeflix-cyber-node.vercel.app/';
@@ -10,6 +13,10 @@ const pin = String(Math.floor(100000 + Math.random() * 900000));
 const tokens = new Set();
 let mainWindow;
 let remoteServer;
+let discordClient;
+let discordReady = false;
+let lastDiscordUpdate = 0;
+let lastDiscordKey = '';
 let remoteStatus = { title: 'HomeFlix', playing: false, currentTime: 0, duration: 0, volume: 1 };
 
 function getLanAddress() {
@@ -63,6 +70,63 @@ function startRemoteServer() {
   remoteServer.on('error', error => console.error('Remote server failed:', error.message));
 }
 
+
+function cleanPresenceText(value, fallback, max = 128) {
+  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  return (text || fallback).slice(0, max);
+}
+
+async function startDiscordRPC() {
+  try {
+    DiscordRPC.register(DISCORD_CLIENT_ID);
+    discordClient = new DiscordRPC.Client({ transport: 'ipc' });
+    discordClient.on('ready', () => {
+      discordReady = true;
+      console.log('HomeFlix Discord Rich Presence connected.');
+      if (remoteStatus.title && remoteStatus.title !== 'HomeFlix') updateDiscordPresence(remoteStatus, true);
+    });
+    discordClient.on('disconnected', () => {
+      discordReady = false;
+      console.log('Discord desktop client disconnected; Rich Presence paused.');
+    });
+    discordClient.on('error', error => console.warn('Discord Rich Presence:', error.message));
+    await discordClient.login({ clientId: DISCORD_CLIENT_ID });
+  } catch (error) {
+    discordReady = false;
+    console.warn('Discord Rich Presence unavailable. Make sure the Discord desktop app is running:', error.message);
+  }
+}
+
+function updateDiscordPresence(presence, force = false) {
+  if (!presence || typeof presence !== 'object') return;
+  const title = cleanPresenceText(presence.title, 'HomeFlix Cyber Node');
+  const playing = Boolean(presence.playing);
+  const currentTime = Math.max(0, Number(presence.currentTime) || 0);
+  const duration = Math.max(0, Number(presence.duration) || 0);
+  remoteStatus = { ...remoteStatus, title, playing, currentTime, duration };
+  if (!discordReady || !discordClient) return;
+  const now = Date.now();
+  const key = [title, playing, Math.floor(currentTime / 15), Math.floor(duration)].join('|');
+  if (!force && (key === lastDiscordKey || now - lastDiscordUpdate < 12000)) return;
+  lastDiscordKey = key;
+  lastDiscordUpdate = now;
+  const activity = {
+    details: cleanPresenceText(title, 'HomeFlix Cyber Node'),
+    state: playing ? 'Watching on HomeFlix' : 'Paused in HomeFlix',
+    largeImageKey: 'homeflix',
+    largeImageText: 'HomeFlix Cyber Node',
+    instance: false
+  };
+  if (playing) activity.startTimestamp = new Date(now - currentTime * 1000);
+  if (duration > 0 && playing) activity.endTimestamp = new Date(now + Math.max(0, duration - currentTime) * 1000);
+  discordClient.setActivity(activity).catch(error => console.warn('Could not update Discord Rich Presence:', error.message));
+}
+
+function clearDiscordPresence() {
+  if (discordReady && discordClient) discordClient.clearActivity().catch(() => {});
+  lastDiscordKey = '';
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1440, height: 920, minWidth: 900, minHeight: 620,
@@ -96,10 +160,19 @@ function createWindow() {
 app.whenReady().then(() => {
   app.setAppUserModelId(APP_ID);
   ipcMain.handle('homeflix:remote-info', () => getRemoteInfo());
+  ipcMain.on('homeflix:discord-presence', (_event, presence) => {
+    if (presence && presence.clear) clearDiscordPresence();
+    else updateDiscordPresence(presence);
+  });
+  startDiscordRPC();
   ipcMain.on('homeflix:remote-status', (_event, status) => { if (status && typeof status === 'object') remoteStatus = { ...remoteStatus, ...status }; });
   startRemoteServer();
   createWindow();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
-app.on('before-quit', () => { if (remoteServer) remoteServer.close(); });
+app.on('before-quit', () => {
+  clearDiscordPresence();
+  if (discordClient) { try { discordClient.destroy(); } catch (_) {} }
+  if (remoteServer) remoteServer.close();
+});
