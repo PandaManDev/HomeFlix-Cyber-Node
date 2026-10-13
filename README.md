@@ -13,7 +13,7 @@ In **Vercel → Project → Settings → Environment Variables**, add:
 - `GITHUB_TOKEN`: a fine-grained GitHub token limited to this repository, with **Contents: Read and write** permission.
 - `GITHUB_OWNER`: `PandaManDev`
 - `GITHUB_REPO`: `https-homeflix-cyber-node.vercel.app-`
-- `HOMEFLIX_UPLOAD_KEY`: a long, random upload password that you share only with trusted users.
+- `HOMEFLIX_UPLOAD_KEY`: HfX_9vQ2mL7xR4pK8wT6nB3yZ5cJ1sD0aGfUeNqYhPz
 - `GITHUB_BRANCH`: optional; defaults to `main` (set this to the actual production branch if different).
 
 Redeploy the Vercel project after adding the variables. Keep the token secret. Rotate the upload key if it is shared too widely.
