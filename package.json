@@ -1,6 +1,6 @@
 {
   "name": "homeflix-cyber-node",
-  "version": "5.0.0",
+  "version": "4.8.0",
   "description": "HomeFlix Cyber Node personal media library and desktop player",
   "main": "electron/main.cjs",
   "private": true,
