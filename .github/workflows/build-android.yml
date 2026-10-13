@@ -70,8 +70,8 @@ jobs:
       - name: Publish APK to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v5.0.0
-          name: HomeFlix Cyber Node v5.0.0
+          tag_name: v4.8.0
+          name: HomeFlix Cyber Node v4.8.0
           files: release/HomeFlix-Cyber-Node-Android.apk
           overwrite_files: true
           make_latest: true
