@@ -67,6 +67,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1440, height: 920, minWidth: 900, minHeight: 620,
     title: 'HomeFlix Cyber Node',
+    icon: path.join(__dirname, '..', 'build', 'homeflix-icon.png'),
     backgroundColor: '#080808',
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
