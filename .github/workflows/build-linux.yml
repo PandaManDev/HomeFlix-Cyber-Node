@@ -8,6 +8,7 @@ on:
       - "index.html"
       - "electron/**"
       - "scripts/**"
+      - "tools/uninstall-homeflix-linux.sh"
       - "build/**"
       - "package.json"
       - "package-lock.json"
@@ -30,13 +31,16 @@ jobs:
         run: npm install
       - name: Build Linux AppImage and Debian package
         run: npm run dist:linux
-      - name: Upload Linux packages as workflow artifacts
+      - name: Prepare Linux uninstaller
+        run: chmod +x tools/uninstall-homeflix-linux.sh
+      - name: Upload Linux packages and uninstaller as workflow artifacts
         uses: actions/upload-artifact@v4
         with:
           name: HomeFlix-Cyber-Node-Linux
           path: |
             release/*.AppImage
             release/*.deb
+            tools/uninstall-homeflix-linux.sh
           if-no-files-found: error
           retention-days: 14
       - name: Publish Linux packages to GitHub Release
@@ -47,6 +51,7 @@ jobs:
           files: |
             release/*.AppImage
             release/*.deb
+            tools/uninstall-homeflix-linux.sh
           overwrite_files: true
           make_latest: true
           fail_on_unmatched_files: true
