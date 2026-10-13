@@ -37,6 +37,40 @@ function getRemoteInfo() {
 function startRemoteServer() {
   const serverApp = express();
   serverApp.use(express.json({ limit: '32kb' }));
+  serverApp.options('/api/discord-presence', (req, res) => {
+    const origin = req.headers.origin;
+    if (origin === 'https://homeflix-cyber-node.vercel.app' || origin === 'http://localhost:3000' || origin === 'http://127.0.0.1:3000') {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Vary', 'Origin');
+      res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      res.setHeader('Access-Control-Allow-Private-Network', 'true');
+      res.setHeader('Access-Control-Max-Age', '600');
+      return res.sendStatus(204);
+    }
+    return res.sendStatus(403);
+  });
+  serverApp.post('/api/discord-presence', (req, res) => {
+    const origin = req.headers.origin;
+    if (origin !== 'https://homeflix-cyber-node.vercel.app' && origin !== 'http://localhost:3000' && origin !== 'http://127.0.0.1:3000') {
+      return res.status(403).json({ error: 'Origin not allowed' });
+    }
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Private-Network', 'true');
+    if (String(req.body?.pin || '') !== pin) return res.status(401).json({ error: 'Incorrect pairing PIN' });
+    if (req.body?.action === 'ping') return res.json({ ok: true, connected: discordReady });
+    const presence = req.body?.presence;
+    if (!presence || typeof presence !== 'object') return res.status(400).json({ error: 'Presence is required' });
+    if (presence.clear) clearDiscordPresence();
+    else updateDiscordPresence({
+      title: cleanPresenceText(presence.title, 'HomeFlix Cyber Node'),
+      playing: Boolean(presence.playing),
+      currentTime: Math.max(0, Number(presence.currentTime) || 0),
+      duration: Math.max(0, Number(presence.duration) || 0)
+    });
+    return res.json({ ok: true, discordReady });
+  });
   serverApp.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'remote.html')));
   serverApp.get('/api/info', (_req, res) => res.json({ app: 'HomeFlix Cyber Node', name: os.hostname() }));
   serverApp.post('/api/pair', (req, res) => {
