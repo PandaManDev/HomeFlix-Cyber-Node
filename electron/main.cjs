@@ -57,6 +57,7 @@ function startRemoteServer() {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
     res.setHeader('Access-Control-Allow-Private-Network', 'true');
+    res.setHeader('Cache-Control', 'no-store');
     return res.json({ ok: true, companion: true, discordReady });
   });
   serverApp.post('/api/discord-presence/auto', (req, res) => {
@@ -65,6 +66,7 @@ function startRemoteServer() {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
     res.setHeader('Access-Control-Allow-Private-Network', 'true');
+    res.setHeader('Cache-Control', 'no-store');
     const presence = req.body?.presence;
     if (!presence || typeof presence !== 'object') return res.status(400).json({ error: 'Presence is required' });
     if (presence.clear) clearDiscordPresence();
