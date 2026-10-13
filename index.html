@@ -19,6 +19,26 @@ main{max-width:1200px;margin:auto;padding:64px 22px 40px}.eyebrow{color:var(--cy
 .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.card{border:1px solid var(--line);background:linear-gradient(145deg,#0d1930dd,#081020);border-radius:14px;padding:22px;min-height:155px}.card-icon{width:42px;height:42px;border-radius:10px;display:grid;place-items:center;background:#092b3c;border:1px solid #14506a;color:var(--cyan);font-size:21px}.card h2{font-size:16px;margin:14px 0 6px}.card p{font-size:14px;color:var(--muted);margin:0}.status{display:inline-flex;align-items:center;gap:7px;color:#a4fbd2;font:11px ui-monospace,monospace;margin-top:18px}.dot{width:7px;height:7px;border-radius:50%;background:#38e7a6;box-shadow:0 0 10px #38e7a6}
 footer{max-width:1200px;margin:20px auto 0;padding:22px;border-top:1px solid var(--line);color:#7185a4;font:12px ui-monospace,monospace;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 @media(max-width:700px){.version{display:none}main{padding-top:45px}.grid{grid-template-columns:1fr}.card{min-height:unset}.nav{padding:10px 15px}.mark{width:40px;height:40px}}
+
+.player-shell{border:1px solid #214265;background:linear-gradient(145deg,#0b1730,#060b18);border-radius:18px;padding:18px;box-shadow:0 18px 60px #0005}
+.player-layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(240px,.8fr);gap:18px}
+.screen{aspect-ratio:16/9;background:#02040b;border:1px solid #1b3150;border-radius:12px;overflow:hidden;display:grid;place-items:center;position:relative}
+.screen video,.screen audio{width:100%;max-height:100%;}.screen video{height:100%;object-fit:contain}
+.empty-screen{text-align:center;color:#91a6c5;padding:22px}.empty-screen strong{display:block;color:#d9faff;font-size:18px;margin:10px 0 5px}
+.player-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px}
+.player-tools button,.file-label{background:#0b2a40;border:1px solid #24516d;color:#e7faff;border-radius:8px;padding:10px 13px;cursor:pointer;font:inherit;font-weight:700}
+.player-tools button:hover,.file-label:hover{border-color:var(--cyan);box-shadow:0 0 14px #37e8ff20}
+.player-tools input[type=range]{accent-color:var(--cyan);min-width:80px;flex:1}
+.player-tools input[type=file]{display:none}
+.player-meta{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--muted);font:12px ui-monospace,monospace;margin-top:10px}
+.playlist{border:1px solid var(--line);border-radius:12px;padding:14px;min-height:100%;background:#060c19}
+.playlist-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}.playlist-head h3{margin:0;font-size:15px}.playlist-head span{font:11px ui-monospace,monospace;color:var(--muted)}
+.track-list{list-style:none;padding:0;margin:0;display:grid;gap:7px;max-height:360px;overflow:auto}
+.track-list button{width:100%;text-align:left;padding:10px;border:1px solid transparent;border-radius:8px;background:#0a1426;color:#d7e6ff;cursor:pointer;overflow-wrap:anywhere}
+.track-list button.active{border-color:#287d99;background:#0a2638}.track-list small{display:block;color:#7f95b8;margin-top:3px}
+.playlist-empty{font-size:13px;color:var(--muted);padding:15px 4px}
+.player-note{font-size:12px;color:#8195b5;margin:13px 0 0}
+@media(max-width:760px){.player-layout{grid-template-columns:1fr}.playlist{min-height:unset}.track-list{max-height:220px}.player-tools input[type=range]{min-width:70px}}
 </style>
 </head>
 <body>
@@ -41,6 +61,30 @@ footer{max-width:1200px;margin:20px auto 0;padding:22px;border-top:1px solid var
 <div class="actions"><a class="btn primary" href="#workspace">Open workspace&nbsp; ↗</a><a class="btn" href="#features">Explore features</a></div>
 <div class="status"><span class="dot"></span> NODE INTERFACE ONLINE</div>
 </section>
+
+<section id="player" style="margin:0 0 42px">
+<h2 class="section-title">Media player</h2>
+<div class="player-shell">
+<div class="player-layout">
+<div>
+<div class="screen" id="screen">
+<div class="empty-screen" id="emptyScreen"><div style="font-size:38px;color:#37e8ff">▷</div><strong>Your screen is ready</strong><span>Choose local video or audio files to start playing.</span></div>
+<video id="videoPlayer" controls playsinline hidden></video>
+<audio id="audioPlayer" controls hidden></audio>
+</div>
+<div class="player-tools">
+<label class="file-label" for="mediaFiles">＋ Add media</label><input id="mediaFiles" type="file" accept="video/*,audio/*,.mp4,.m4v,.webm,.mov,.mkv,.mp3,.m4a,.aac,.wav,.ogg,.flac" multiple>
+<button id="playPause" type="button" aria-label="Play or pause">▶ Play</button>
+<button id="previousTrack" type="button">↶ Previous</button><button id="nextTrack" type="button">Next ↷</button>
+</div>
+<div class="player-tools"><span style="color:#9aacc7;font-size:12px">SEEK</span><input id="seekBar" type="range" min="0" max="1000" value="0" aria-label="Seek position"><span id="timeDisplay" style="color:#9aacc7;font:12px ui-monospace,monospace;white-space:nowrap">0:00 / 0:00</span></div>
+<div class="player-tools"><span style="color:#9aacc7;font-size:12px">VOLUME</span><input id="volumeBar" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="Volume"><button id="muteButton" type="button">Mute</button></div>
+<div class="player-meta"><span id="nowPlaying">Nothing playing</span><span id="mediaType">LOCAL MEDIA</span></div>
+</div>
+<aside class="playlist"><div class="playlist-head"><h3>Up next</h3><span id="trackCount">0 FILES</span></div><ul class="track-list" id="trackList"><li class="playlist-empty" id="playlistEmpty">Your selected media files will appear here.</li></ul><p class="player-note">Files play directly in this browser. Your selected files are not uploaded to the website.</p></aside>
+</div>
+</div>
+</section>
 <section id="workspace"><h2 class="section-title">Workspace overview</h2><div class="grid">
 <article class="card"><div class="card-icon">▣</div><h2>Media Library</h2><p>Your media hub is ready for your library and favorite content sources.</p></article>
 <article class="card"><div class="card-icon">▷</div><h2>Playback Center</h2><p>A clean space to organize your viewing and playback experience.</p></article>
@@ -53,4 +97,29 @@ footer{max-width:1200px;margin:20px auto 0;padding:22px;border-top:1px solid var
 </div></section>
 </main>
 <footer><span>HOMEFLIX CYBER NODE · V4.8</span><span>PERSONAL MEDIA INTERFACE</span></footer>
+
+<script>
+(() => {
+ const picker=document.getElementById('mediaFiles'), video=document.getElementById('videoPlayer'), audio=document.getElementById('audioPlayer');
+ const empty=document.getElementById('emptyScreen'), playBtn=document.getElementById('playPause'), prevBtn=document.getElementById('previousTrack'), nextBtn=document.getElementById('nextTrack');
+ const seek=document.getElementById('seekBar'), volume=document.getElementById('volumeBar'), mute=document.getElementById('muteButton');
+ const time=document.getElementById('timeDisplay'), now=document.getElementById('nowPlaying'), type=document.getElementById('mediaType');
+ const list=document.getElementById('trackList'), count=document.getElementById('trackCount');
+ let files=[], urls=[], current=-1, seeking=false;
+ const player=()=>!video.hidden?video:audio;
+ const fmt=n=>{if(!Number.isFinite(n)||n<0)return '0:00';const s=Math.floor(n);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+ function renderList(){list.innerHTML='';count.textContent=files.length+' FILE'+(files.length===1?'':'S');if(!files.length){list.innerHTML='<li class="playlist-empty">Your selected media files will appear here.</li>';return}files.forEach((file,i)=>{const li=document.createElement('li'),b=document.createElement('button'),small=document.createElement('small');b.type='button';b.className=i===current?'active':'';b.textContent=(i+1)+'. '+file.name;small.textContent=file.type.startsWith('audio/')?'AUDIO FILE':'VIDEO FILE';b.appendChild(small);b.addEventListener('click',()=>load(i,true));li.appendChild(b);list.appendChild(li)})}
+ function load(i,autoplay){if(i<0||i>=files.length)return;current=i;const file=files[i],isAudio=file.type.startsWith('audio/')||/\.(mp3|m4a|aac|wav|ogg|flac)$/i.test(file.name);video.pause();audio.pause();video.hidden=isAudio;audio.hidden=!isAudio;empty.hidden=true;const el=isAudio?audio:video;el.src=urls[i];el.volume=Number(volume.value);el.load();now.textContent=file.name;type.textContent=isAudio?'AUDIO PLAYBACK':'VIDEO PLAYBACK';playBtn.textContent='▶ Play';seek.value=0;time.textContent='0:00 / 0:00';renderList();if(autoplay)el.play().then(()=>playBtn.textContent='❚❚ Pause').catch(()=>{})}
+ picker.addEventListener('change',()=>{const incoming=Array.from(picker.files||[]);incoming.forEach(file=>{files.push(file);urls.push(URL.createObjectURL(file))});picker.value='';renderList();if(current===-1&&files.length)load(0,false)});
+ playBtn.addEventListener('click',()=>{if(current===-1){picker.click();return}const el=player();if(el.paused)el.play().then(()=>playBtn.textContent='❚❚ Pause').catch(()=>{});else{el.pause();playBtn.textContent='▶ Play'}});
+ prevBtn.addEventListener('click',()=>{if(files.length)load((current-1+files.length)%files.length,true)});
+ nextBtn.addEventListener('click',()=>{if(files.length)load((current+1)%files.length,true)});
+ [video,audio].forEach(el=>{el.addEventListener('play',()=>playBtn.textContent='❚❚ Pause');el.addEventListener('pause',()=>playBtn.textContent='▶ Play');el.addEventListener('ended',()=>{if(files.length>1)load((current+1)%files.length,true)});el.addEventListener('timeupdate',()=>{if(!seeking&&Number.isFinite(el.duration)&&el.duration>0)seek.value=Math.round(el.currentTime/el.duration*1000);time.textContent=fmt(el.currentTime)+' / '+fmt(el.duration)});el.addEventListener('loadedmetadata',()=>{time.textContent=fmt(el.currentTime)+' / '+fmt(el.duration)})});
+ seek.addEventListener('input',()=>{seeking=true;const el=player();if(Number.isFinite(el.duration)&&el.duration>0){el.currentTime=(Number(seek.value)/1000)*el.duration;time.textContent=fmt(el.currentTime)+' / '+fmt(el.duration)}});
+ seek.addEventListener('change',()=>seeking=false);
+ volume.addEventListener('input',()=>{video.volume=audio.volume=Number(volume.value);if(volume.value>0){video.muted=audio.muted=false;mute.textContent='Mute'}});
+ mute.addEventListener('click',()=>{const el=player();el.muted=!el.muted;mute.textContent=el.muted?'Unmute':'Mute'});
+ window.addEventListener('beforeunload',()=>urls.forEach(URL.revokeObjectURL));
+})();
+</script>
 </body></html>
