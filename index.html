@@ -190,7 +190,7 @@
                     <div class="flex flex-wrap gap-2">
                         <label class="cursor-pointer px-4 py-2.5 rounded-lg bg-[#e50914] hover:bg-red-700 text-white font-semibold text-sm transition"><i class="fa-solid fa-plus mr-2"></i>Add videos<input id="library-file-selector" type="file" class="hidden" multiple accept="video/*"></label>
                         <label class="cursor-pointer px-4 py-2.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white font-semibold text-sm transition"><i class="fa-solid fa-folder-open mr-2"></i>Scan folder<input id="library-folder-selector" type="file" class="hidden" webkitdirectory directory multiple accept="video/*"></label>
-                        <button onclick="openDiscordProfile()" class="px-4 py-2.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-400/30 text-white text-sm transition" title="Discord profile and activity"><i class="fa-brands fa-discord mr-2"></i>Profile</button><button onclick="openLibrarySettings()" class="px-4 py-2.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white text-sm transition" title="Themes and remote"><i class="fa-solid fa-sliders mr-2"></i>Settings</button>
+                        <button onclick="openLibrarySettings()" class="px-4 py-2.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white text-sm transition" title="Themes and remote"><i class="fa-solid fa-sliders mr-2"></i>Settings</button>
                     </div>
                 </div>
                 <div class="mt-6 flex flex-col lg:flex-row gap-3">
@@ -209,33 +209,6 @@
         </section>
 
         
-        <div id="discord-profile-modal" class="hidden fixed inset-0 z-[110] bg-black/80 backdrop-blur-sm items-center justify-center p-4" onclick="if(event.target===this)closeDiscordProfile()">
-            <section class="w-full max-w-xl rounded-2xl bg-[#111827] border border-indigo-400/25 p-5 md:p-6 shadow-2xl shadow-indigo-950/40" role="dialog" aria-modal="true" aria-labelledby="discord-profile-heading">
-                <div class="flex items-center justify-between gap-4 mb-5">
-                    <div><p class="text-xs font-mono tracking-[.25em] text-indigo-300 mb-1">USER NODE / PROFILE</p><h3 id="discord-profile-heading" class="text-2xl font-bold text-white">HomeFlix on Discord</h3></div>
-                    <button onclick="closeDiscordProfile()" class="text-zinc-400 hover:text-white p-2" aria-label="Close profile"><i class="fa-solid fa-xmark text-xl"></i></button>
-                </div>
-                <div class="rounded-xl border border-indigo-400/20 bg-black/30 p-4">
-                    <div class="flex items-center gap-3">
-                        <div class="w-14 h-14 shrink-0 rounded-2xl bg-indigo-500/20 border border-indigo-300/20 flex items-center justify-center text-3xl text-indigo-200"><i class="fa-brands fa-discord"></i></div>
-                        <div class="min-w-0 flex-1"><p class="font-semibold text-white">HomeFlix Cyber Node</p><p class="text-sm text-emerald-300 mt-1"><i class="fa-solid fa-circle-check mr-1"></i> Discord application configured</p></div>
-                    </div>
-                    <div class="mt-4 rounded-lg bg-white/5 p-3">
-                        <p class="text-xs text-indigo-200 font-semibold tracking-wide mb-1">DISCORD APPLICATION ID</p>
-                        <p class="font-mono text-white break-all">1559626336795107379</p>
-                        <p class="text-sm text-zinc-400 mt-2">This is the HomeFlix app ID used by the desktop version's Rich Presence. The web profile now displays the same app identity; the desktop app integration remains unchanged.</p>
-                    </div>
-                    <div class="mt-4 rounded-lg border border-amber-400/20 bg-amber-400/5 p-3">
-                        <p class="text-sm text-amber-200 font-semibold"><i class="fa-solid fa-circle-info mr-1"></i> About live activity</p>
-                        <p class="text-sm text-zinc-300 mt-1">A Discord Application ID identifies the app, not a Discord user. Discord does not let a regular website publish or read live Rich Presence using only this ID, so the web card shows the app profile rather than pretending to show live account activity.</p>
-                    </div>
-                </div>
-                <div class="flex flex-wrap justify-end gap-2 mt-5">
-                    <button onclick="closeDiscordProfile()" class="px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-white font-semibold text-sm">Done</button>
-                </div>
-            </section>
-        </div>
-
 <div id="library-settings-modal" class="hidden fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm items-center justify-center p-4">
             <div class="w-full max-w-lg rounded-2xl bg-[#171717] border border-white/15 p-6 shadow-2xl">
                 <div class="flex items-center justify-between mb-5"><h3 class="text-xl font-bold text-white">HomeFlix Settings</h3><button onclick="closeLibrarySettings()" class="text-zinc-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button></div>
@@ -605,14 +578,6 @@
         }
 
         let discordProfileRefreshTimer = null;
-        function openDiscordProfile() {
-            const modal = document.getElementById('discord-profile-modal');
-            modal.classList.remove('hidden'); modal.classList.add('flex');
-        }
-        function closeDiscordProfile() {
-            const modal = document.getElementById('discord-profile-modal');
-            modal.classList.add('hidden'); modal.classList.remove('flex');
-        }
         function openLibrarySettings() {
             document.getElementById('library-theme').value=state.libraryTheme;
             document.getElementById('library-settings-modal').classList.remove('hidden');
