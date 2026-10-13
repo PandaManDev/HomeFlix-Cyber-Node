@@ -37,12 +37,13 @@ function getRemoteInfo() {
 function startRemoteServer() {
   const serverApp = express();
   serverApp.use(express.json({ limit: '32kb' }));
-  serverApp.options('/api/discord-presence', (req, res) => {
+  const allowedDiscordOrigins = new Set(['https://homeflix-cyber-node.vercel.app', 'http://localhost:3000', 'http://127.0.0.1:3000']);
+  serverApp.options('/api/discord-presence/:mode?', (req, res) => {
     const origin = req.headers.origin;
-    if (origin === 'https://homeflix-cyber-node.vercel.app' || origin === 'http://localhost:3000' || origin === 'http://127.0.0.1:3000') {
+    if (allowedDiscordOrigins.has(origin)) {
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Vary', 'Origin');
-      res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
       res.setHeader('Access-Control-Allow-Private-Network', 'true');
       res.setHeader('Access-Control-Max-Age', '600');
@@ -50,9 +51,34 @@ function startRemoteServer() {
     }
     return res.sendStatus(403);
   });
+  serverApp.get('/api/discord-presence/status', (req, res) => {
+    const origin = req.headers.origin;
+    if (!allowedDiscordOrigins.has(origin)) return res.sendStatus(403);
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Private-Network', 'true');
+    return res.json({ ok: true, companion: true, discordReady });
+  });
+  serverApp.post('/api/discord-presence/auto', (req, res) => {
+    const origin = req.headers.origin;
+    if (!allowedDiscordOrigins.has(origin)) return res.status(403).json({ error: 'Origin not allowed' });
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Private-Network', 'true');
+    const presence = req.body?.presence;
+    if (!presence || typeof presence !== 'object') return res.status(400).json({ error: 'Presence is required' });
+    if (presence.clear) clearDiscordPresence();
+    else updateDiscordPresence({
+      title: cleanPresenceText(presence.title, 'HomeFlix Cyber Node'),
+      playing: Boolean(presence.playing),
+      currentTime: Math.max(0, Number(presence.currentTime) || 0),
+      duration: Math.max(0, Number(presence.duration) || 0)
+    });
+    return res.json({ ok: true, discordReady });
+  });
   serverApp.post('/api/discord-presence', (req, res) => {
     const origin = req.headers.origin;
-    if (origin !== 'https://homeflix-cyber-node.vercel.app' && origin !== 'http://localhost:3000' && origin !== 'http://127.0.0.1:3000') {
+    if (!allowedDiscordOrigins.has(origin)) {
       return res.status(403).json({ error: 'Origin not allowed' });
     }
     res.setHeader('Access-Control-Allow-Origin', origin);
