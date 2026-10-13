@@ -12,7 +12,8 @@
     "dist:linux": "npm run make-icon && electron-builder --linux AppImage deb --x64 --publish never"
   },
   "dependencies": {
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "discord-rpc": "^4.0.1"
   },
   "devDependencies": {
     "@capacitor/android": "^7.4.3",
