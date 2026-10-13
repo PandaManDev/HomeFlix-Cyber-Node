@@ -212,24 +212,26 @@
         <div id="discord-profile-modal" class="hidden fixed inset-0 z-[110] bg-black/80 backdrop-blur-sm items-center justify-center p-4" onclick="if(event.target===this)closeDiscordProfile()">
             <section class="w-full max-w-xl rounded-2xl bg-[#111827] border border-indigo-400/25 p-5 md:p-6 shadow-2xl shadow-indigo-950/40" role="dialog" aria-modal="true" aria-labelledby="discord-profile-heading">
                 <div class="flex items-center justify-between gap-4 mb-5">
-                    <div><p class="text-xs font-mono tracking-[.25em] text-indigo-300 mb-1">USER NODE / PROFILE</p><h3 id="discord-profile-heading" class="text-2xl font-bold text-white">Discord activity</h3></div>
+                    <div><p class="text-xs font-mono tracking-[.25em] text-indigo-300 mb-1">USER NODE / PROFILE</p><h3 id="discord-profile-heading" class="text-2xl font-bold text-white">HomeFlix on Discord</h3></div>
                     <button onclick="closeDiscordProfile()" class="text-zinc-400 hover:text-white p-2" aria-label="Close profile"><i class="fa-solid fa-xmark text-xl"></i></button>
                 </div>
-                <div class="rounded-xl border border-white/10 bg-black/30 p-4 mb-4">
+                <div class="rounded-xl border border-indigo-400/20 bg-black/30 p-4">
                     <div class="flex items-center gap-3">
-                        <div id="discord-profile-avatar" class="w-14 h-14 shrink-0 rounded-full bg-indigo-500/20 border border-indigo-300/20 flex items-center justify-center text-2xl text-indigo-200"><i class="fa-brands fa-discord"></i></div>
-                        <div class="min-w-0 flex-1"><p id="discord-profile-name" class="font-semibold text-white truncate">Discord not linked</p><p id="discord-profile-status" class="text-sm text-zinc-400 mt-1">Link a public Discord presence to show activity.</p></div>
+                        <div class="w-14 h-14 shrink-0 rounded-2xl bg-indigo-500/20 border border-indigo-300/20 flex items-center justify-center text-3xl text-indigo-200"><i class="fa-brands fa-discord"></i></div>
+                        <div class="min-w-0 flex-1"><p class="font-semibold text-white">HomeFlix Cyber Node</p><p class="text-sm text-emerald-300 mt-1"><i class="fa-solid fa-circle-check mr-1"></i> Discord application configured</p></div>
                     </div>
-                    <div class="mt-4 rounded-lg bg-white/5 p-3"><p class="text-xs text-indigo-200 font-semibold tracking-wide mb-1">CURRENT ACTIVITY</p><p id="discord-profile-activity" class="text-white font-medium">No activity available</p><p id="discord-profile-details" class="text-sm text-zinc-400 mt-1">Your Discord activity will appear here when publicly available.</p></div>
+                    <div class="mt-4 rounded-lg bg-white/5 p-3">
+                        <p class="text-xs text-indigo-200 font-semibold tracking-wide mb-1">DISCORD APPLICATION ID</p>
+                        <p class="font-mono text-white break-all">1559626336795107379</p>
+                        <p class="text-sm text-zinc-400 mt-2">This is the HomeFlix app ID used by the desktop version's Rich Presence. The web profile now displays the same app identity; the desktop app integration remains unchanged.</p>
+                    </div>
+                    <div class="mt-4 rounded-lg border border-amber-400/20 bg-amber-400/5 p-3">
+                        <p class="text-sm text-amber-200 font-semibold"><i class="fa-solid fa-circle-info mr-1"></i> About live activity</p>
+                        <p class="text-sm text-zinc-300 mt-1">A Discord Application ID identifies the app, not a Discord user. Discord does not let a regular website publish or read live Rich Presence using only this ID, so the web card shows the app profile rather than pretending to show live account activity.</p>
+                    </div>
                 </div>
-                <label for="discord-profile-id" class="block text-sm text-zinc-300 mb-2">Discord User ID</label>
-                <input id="discord-profile-id" inputmode="numeric" autocomplete="off" placeholder="Example: 123456789012345678" class="w-full rounded-lg bg-black border border-white/15 p-3 text-white placeholder:text-zinc-600 focus:outline-none focus:border-indigo-400">
-                <p class="text-xs text-zinc-500 mt-2 leading-relaxed">Live activity is not available from Discord's public API alone. To enable this card, the account must join the Lanyard Discord server and share presence. To find your ID, enable Developer Mode in Discord Settings → Advanced, then right-click your profile and choose Copy User ID.</p>
-                <a href="https://discord.gg/lanyard" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 mt-3 px-3 py-2 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-400/25 text-indigo-200 text-sm"><i class="fa-brands fa-discord"></i> Join Lanyard to enable activity <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i></a>
-                <p id="discord-profile-error" class="hidden text-sm text-rose-300 mt-3" role="status"></p>
                 <div class="flex flex-wrap justify-end gap-2 mt-5">
-                    <button onclick="disconnectDiscordProfile()" class="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 text-sm">Disconnect</button>
-                    <button onclick="loadDiscordProfile(true)" class="px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-white font-semibold text-sm"><i class="fa-brands fa-discord mr-2"></i>Link / Refresh</button>
+                    <button onclick="closeDiscordProfile()" class="px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-white font-semibold text-sm">Done</button>
                 </div>
             </section>
         </div>
@@ -606,65 +608,10 @@
         function openDiscordProfile() {
             const modal = document.getElementById('discord-profile-modal');
             modal.classList.remove('hidden'); modal.classList.add('flex');
-            const savedId = localStorage.getItem('homeflix-discord-user-id') || '';
-            document.getElementById('discord-profile-id').value = savedId;
-            if (savedId) loadDiscordProfile(false);
         }
         function closeDiscordProfile() {
             const modal = document.getElementById('discord-profile-modal');
             modal.classList.add('hidden'); modal.classList.remove('flex');
-            if (discordProfileRefreshTimer) { clearInterval(discordProfileRefreshTimer); discordProfileRefreshTimer = null; }
-        }
-        function disconnectDiscordProfile() {
-            localStorage.removeItem('homeflix-discord-user-id');
-            if (discordProfileRefreshTimer) { clearInterval(discordProfileRefreshTimer); discordProfileRefreshTimer = null; }
-            document.getElementById('discord-profile-id').value = '';
-            document.getElementById('discord-profile-name').textContent = 'Discord not linked';
-            document.getElementById('discord-profile-status').textContent = 'Link a public Discord presence to show activity.';
-            document.getElementById('discord-profile-activity').textContent = 'No activity available';
-            document.getElementById('discord-profile-details').textContent = 'Your Discord activity will appear here when publicly available.';
-            document.getElementById('discord-profile-avatar').innerHTML = '<i class="fa-brands fa-discord"></i>';
-            const error = document.getElementById('discord-profile-error'); error.textContent = ''; error.classList.add('hidden');
-            showToast('Discord profile disconnected.');
-        }
-        async function loadDiscordProfile(saveId = true) {
-            const idInput = document.getElementById('discord-profile-id');
-            const id = idInput.value.trim();
-            const error = document.getElementById('discord-profile-error');
-            error.classList.add('hidden'); error.textContent = '';
-            if (!/^\d{17,20}$/.test(id)) {
-                error.textContent = 'Enter a valid Discord User ID (17–20 digits).'; error.classList.remove('hidden'); return;
-            }
-            if (saveId) localStorage.setItem('homeflix-discord-user-id', id);
-            document.getElementById('discord-profile-status').textContent = 'Checking public Discord presence…';
-            try {
-                const response = await fetch('https://api.lanyard.rest/v1/users/' + encodeURIComponent(id), { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
-                const result = await response.json();
-                if (!response.ok || !result.success || !result.data) throw new Error('No public presence found for this ID. Join the Lanyard Discord server using the button below, then try again.');
-                const data = result.data;
-                const user = data.discord_user || {};
-                const displayName = user.global_name || user.display_name || user.username || 'Discord user';
-                document.getElementById('discord-profile-name').textContent = displayName + (user.username && user.username !== displayName ? ' (@' + user.username + ')' : '');
-                const statusLabels = { online: 'Online', idle: 'Idle', dnd: 'Do Not Disturb', offline: 'Offline' };
-                document.getElementById('discord-profile-status').textContent = statusLabels[data.discord_status] || 'Presence connected';
-                const avatar = document.getElementById('discord-profile-avatar');
-                if (user.id && user.avatar) {
-                    const ext = user.avatar.startsWith('a_') ? 'gif' : 'png';
-                    avatar.innerHTML = '<img class="w-full h-full rounded-full object-cover" alt="" src="https://cdn.discordapp.com/avatars/' + encodeURIComponent(user.id) + '/' + encodeURIComponent(user.avatar) + '.' + ext + '?size=128">';
-                } else avatar.innerHTML = '<i class="fa-brands fa-discord"></i>';
-                const activities = Array.isArray(data.activities) ? data.activities : [];
-                const activity = activities.find(item => item && item.type !== 4) || (data.listening_to_spotify ? { name: 'Spotify', details: data.spotify?.song, state: data.spotify?.artist } : null);
-                document.getElementById('discord-profile-activity').textContent = activity ? (activity.name || 'Discord activity') : (data.discord_status === 'offline' ? 'Offline' : 'No activity shared');
-                const details = activity ? [activity.details, activity.state].filter(Boolean).join(' · ') : 'Discord does not expose a current activity for this account.';
-                document.getElementById('discord-profile-details').textContent = details;
-                if (discordProfileRefreshTimer) clearInterval(discordProfileRefreshTimer);
-                discordProfileRefreshTimer = setInterval(() => {
-                    if (!document.getElementById('discord-profile-modal').classList.contains('hidden')) loadDiscordProfile(false);
-                }, 30000);
-            } catch (err) {
-                document.getElementById('discord-profile-status').textContent = 'Presence unavailable';
-                error.textContent = err && err.message ? err.message : 'Could not load public Discord activity.'; error.classList.remove('hidden');
-            }
         }
         function openLibrarySettings() {
             document.getElementById('library-theme').value=state.libraryTheme;
