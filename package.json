@@ -1,0 +1,58 @@
+{
+  "name": "homeflix-cyber-node",
+  "version": "5.0.0",
+  "description": "HomeFlix Cyber Node personal media library and desktop player",
+  "main": "electron/main.cjs",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "make-icon": "node scripts/make-icon.cjs",
+    "dist": "npm run make-icon && electron-builder --win nsis",
+    "dist:dir": "npm run make-icon && electron-builder --win dir"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "electron": "^38.2.0",
+    "electron-builder": "^26.0.12",
+    "png-to-ico": "^2.1.8",
+    "sharp": "^0.34.4"
+  },
+  "build": {
+    "appId": "com.homeflix.cybernode",
+    "productName": "HomeFlix Cyber Node",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "index.html",
+      "electron/**/*",
+      "build/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/homeflix.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "HomeFlix Cyber Node",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "artifactName": "HomeFlix-Cyber-Node-Setup-${version}.${ext}"
+  }
+}
