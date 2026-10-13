@@ -176,6 +176,11 @@
                             <span>IMPORT FILES</span>
                             <input type="file" id="file-selector" class="hidden" multiple accept="video/*">
                         </label>
+                        <label class="px-5 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-emerald-500/40 text-emerald-300 font-orbitron font-semibold text-xs tracking-wider cursor-pointer transition flex items-center space-x-2">
+                            <i class="fa-solid fa-folder-tree"></i>
+                            <span>IMPORT FOLDER</span>
+                            <input type="file" id="folder-selector" class="hidden" webkitdirectory directory multiple accept="video/*">
+                        </label>
                         <button onclick="loadSampleStreams()" class="px-5 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-cyan-500/40 text-cyan-300 font-orbitron font-semibold text-xs tracking-wider transition flex items-center space-x-2">
                             <i class="fa-solid fa-bolt"></i>
                             <span>LOAD SAMPLES</span>
@@ -499,10 +504,12 @@
         // File Selector & Drag and Drop Setup
         const fileSelector = document.getElementById('file-selector');
         const playlistFileInput = document.getElementById('playlist-file-input');
+        const folderSelector = document.getElementById('folder-selector');
         const playlistDropzone = document.getElementById('playlist-dropzone');
 
-        fileSelector.addEventListener('change', (e) => handleFiles(e.target.files));
-        playlistFileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+        fileSelector.addEventListener('change', (e) => { handleFiles(e.target.files); e.target.value = ''; });
+        playlistFileInput.addEventListener('change', (e) => { handleFiles(e.target.files); e.target.value = ''; });
+        folderSelector.addEventListener('change', (e) => { handleFiles(e.target.files); e.target.value = ''; });
         playlistDropzone.addEventListener('click', () => playlistFileInput.click());
 
         // Global Drag and Drop over player container
@@ -643,8 +650,15 @@
             });
         }
 
+        function releaseLocalUrl(item) {
+            if (item && typeof item.url === 'string' && item.url.startsWith('blob:')) URL.revokeObjectURL(item.url);
+        }
+
         function removeFromQueue(index) {
+            const removedItem = state.playlist[index];
+            releaseLocalUrl(removedItem);
             state.playlist.splice(index, 1);
+            if (index < state.currentIndex) state.currentIndex--;
             if (state.currentIndex >= state.playlist.length) {
                 state.currentIndex = Math.max(0, state.playlist.length - 1);
             }
@@ -662,6 +676,7 @@
         }
 
         function clearQueue() {
+            state.playlist.forEach(releaseLocalUrl);
             state.playlist = [];
             state.currentIndex = 0;
             video.pause();
@@ -733,6 +748,19 @@
 
         video.addEventListener('loadedmetadata', () => {
             durationEl.textContent = formatTime(video.duration);
+        });
+
+        video.addEventListener('error', () => {
+            if (!video.currentSrc) return;
+            const code = video.error ? video.error.code : 0;
+            const reason = code === 4 ? 'Unsupported format or codec. Try MP4 (H.264/AAC) or WebM (VP8/VP9/Opus).' : 'The video could not be loaded. Check the file or stream URL.';
+            state.isPlaying = false;
+            updatePlayIcons();
+            showToast(reason);
+        });
+
+        window.addEventListener('beforeunload', () => {
+            state.playlist.forEach(releaseLocalUrl);
         });
 
         videoProgress.addEventListener('input', (e) => {
