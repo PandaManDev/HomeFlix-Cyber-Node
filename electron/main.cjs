@@ -42,7 +42,14 @@ function startRemoteServer() {
     if (!token || !tokens.has(token)) return res.status(401).json({ error: 'Pair this phone with the desktop PIN first.' });
     next();
   });
-  serverApp.get('/api/status', (_req, res) => res.json(remoteStatus));
+  serverApp.get('/api/status', (_req, res) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('homeflix:remote-command', { action: 'status' });
+      setTimeout(() => res.json(remoteStatus), 120);
+    } else {
+      res.json(remoteStatus);
+    }
+  });
   serverApp.post('/api/command', (req, res) => {
     const allowed = new Set(['toggle', 'play', 'pause', 'seek', 'volume', 'mute', 'next', 'previous', 'fullscreen', 'status']);
     const action = String(req.body?.action || '');
