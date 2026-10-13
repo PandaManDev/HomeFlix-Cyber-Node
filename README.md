@@ -41,20 +41,25 @@ npm run dist:linux
 
 The x64 AppImage and Debian package are written to `release/`. The AppImage is portable on most mainstream Linux distributions; the `.deb` package is intended for Debian, Ubuntu, Linux Mint, and compatible systems. Run the AppImage with execute permission, for example `chmod +x release/*.AppImage` and then `./release/*.AppImage`.
 
-### Linux uninstaller
+## Linux uninstaller app
 
-The standalone `tools/uninstall-homeflix-linux.sh` script is included with the Linux release downloads. Download it, then run:
+The Linux release includes a standalone graphical uninstaller executable named **`HomeFlix-Linux-Uninstaller`**, built for Linux x64. Download it from the [GitHub Releases page](https://github.com/PandaManDev/HomeFlix-Cyber-Node-Windows/releases), save it, and run:
+
+```bash
+chmod +x HomeFlix-Linux-Uninstaller
+./HomeFlix-Linux-Uninstaller
+```
+
+The app opens a window with an **Uninstall HomeFlix** button. It requests administrator approval through `pkexec` to remove the installed Debian package, cleans up matching user desktop shortcuts, and asks whether to keep or delete HomeFlix settings/cache. It does not delete your media files or downloaded portable AppImage. If your desktop does not provide `pkexec`, the app explains the manual terminal command to use.
+
+The graphical executable is built and uploaded alongside the Linux AppImage, `.deb`, and shell-script fallback by the Linux GitHub Actions workflow. The workflow artifact is available for 14 days; the release assets remain available from GitHub Releases after a successful build. If the binary is not yet listed in Releases, open the repository's Actions tab and wait for the Linux build workflow to complete successfully.
+
+A command-line fallback is also available at `tools/uninstall-homeflix-linux.sh`. Download it and run:
 
 ```bash
 chmod +x uninstall-homeflix-linux.sh
 ./uninstall-homeflix-linux.sh
 ```
-
-It offers to remove the Debian package (using administrator permission when needed), clears matching per-user desktop shortcuts, and asks separately before deleting HomeFlix settings/cache. Personal settings are kept by default. Portable AppImage files are not deleted automatically; remove the downloaded file yourself when finished.
-
-GitHub Actions builds both Linux packages and publishes the Linux uninstaller script as a workflow artifact and release download after a successful build.
-
-The app loads the production website first and falls back to the packaged `index.html` if the website cannot be reached. The phone remote listens on TCP port 47831 by default. Keep this port on a trusted private network; do not expose it to the public internet.
 
 ## Download the installer
 
