@@ -1110,30 +1110,39 @@
             if(activeItem){ activeItem.duration=video.duration; if(activeItem.progress>5 && activeItem.progress<video.duration-10){ const resumeAt=activeItem.progress; video.currentTime=resumeAt; showToast('Resuming from '+formatTime(resumeAt)); } persistLibrary(); renderLibrary(); }
         });
 
-        video.addEventListener('error', () => {
+        video.addEventListener('error', async () => {
             if (!video.currentSrc) return;
             const code = video.error ? video.error.code : 0;
+            const activeItem = state.playlist[state.currentIndex];
+            const isLocalFile = activeItem && activeItem.type === 'local' && activeItem.localPath &&
+                window.homeflixDesktop && typeof window.homeflixDesktop.transcodeLocalMedia === 'function';
             const reason = code === 2
                 ? 'Network error while loading this video. Check the connection or try another source.'
                 : code === 3
-                    ? 'This video codec is not supported by the built-in browser player. MKV files are detected, but some MKV codecs need a compatible desktop player such as mpv or VLC. Try an H.264/AAC MP4 or open this file in a desktop player.'
+                    ? 'This video codec is not supported by the built-in browser player.'
                     : code === 4
-                        ? 'The video source was rejected. This can happen when a remote host blocks cross-origin media or the codec is unsupported. MKV is a container, so support depends on its video/audio codecs; try an H.264/AAC MP4 or a compatible desktop player.'
-                        : 'The video could not be loaded. Check the file or stream URL.';
-            state.isPlaying = false;
-            updatePlayIcons();
-            const activeItem = state.playlist[state.currentIndex];
-            const isLocalFile = activeItem && activeItem.type === 'local' && activeItem.localPath && window.homeflixDesktop && typeof window.homeflixDesktop.openLocalMedia === 'function';
-            if (isLocalFile) {
-                showToast('This file’s codec is not supported by the built-in player. You can open it in your computer’s default video player.');
-                if (window.confirm('HomeFlix cannot decode this file in its built-in player. Open it in your computer’s default video player instead?')) {
-                    window.homeflixDesktop.openLocalMedia(activeItem.localPath).then(errorMessage => {
-                        if (errorMessage) showToast('Could not open the external player: ' + errorMessage);
-                    }).catch(error => showToast('Could not open the external player: ' + error.message));
+                        ? 'The video source was rejected. The format or codec may not be supported.'
+                        : 'This video could not be played. The file may be damaged or use an unsupported format.';
+
+            // Convert unsupported local codecs once, then play the converted file inside HomeFlix.
+            if (isLocalFile && !activeItem.transcodeAttempted) {
+                activeItem.transcodeAttempted = true;
+                showToast('Preparing this video for HomeFlix playback… This can take a few minutes for large files.');
+                try {
+                    const convertedUrl = await window.homeflixDesktop.transcodeLocalMedia(activeItem.localPath);
+                    if (state.playlist[state.currentIndex] !== activeItem) return;
+                    activeItem.transcodedUrl = convertedUrl;
+                    video.src = convertedUrl;
+                    video.load();
+                    await video.play().catch(() => {});
+                    showToast('Video converted. Playing inside HomeFlix.');
+                    return;
+                } catch (error) {
+                    showToast('Could not convert this video: ' + (error && error.message ? error.message : 'Unknown conversion error'));
+                    return;
                 }
-            } else {
-                showToast(reason);
             }
+            showToast(reason + (isLocalFile ? ' HomeFlix tried converting it, but conversion failed.' : ' For local files, use the HomeFlix desktop app for automatic conversion.'));
         });
 
         window.addEventListener('beforeunload', () => {
