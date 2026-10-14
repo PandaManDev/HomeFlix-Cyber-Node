@@ -417,6 +417,7 @@ app.on('before-quit', () => {
   clearDiscordPresence();
   for (const filePath of transcodedMedia.values()) { try { fs.rmSync(filePath, { force: true }); } catch (_) {} }
   transcodedMedia.clear();
+  remoteStreamSources.clear();
   if (discordClient) { try { discordClient.destroy(); } catch (_) {} }
   if (remoteServer) remoteServer.close();
 });
