@@ -15,7 +15,8 @@
   },
   "dependencies": {
     "express": "^4.21.2",
-    "discord-rpc": "^4.0.1"
+    "discord-rpc": "^4.0.1",
+    "ffmpeg-static": "^5.2.0"
   },
   "devDependencies": {
     "@capacitor/android": "^7.4.3",
@@ -84,6 +85,9 @@
       "description": "HomeFlix Cyber Node personal media library and desktop player",
       "icon": "build/icons",
       "maintainer": "PandaManDev"
-    }
+    },
+    "asarUnpack": [
+      "node_modules/ffmpeg-static/**"
+    ]
   }
 }
