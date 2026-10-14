@@ -282,7 +282,9 @@ function createWindow() {
 app.whenReady().then(() => {
   app.setAppUserModelId(APP_ID);
   protocol.handle('homeflix-media', request => {
-    const token = new URL(request.url).pathname.replace(/^\\//, '');
+    const mediaUrl = new URL(request.url);
+    if (mediaUrl.hostname !== 'converted') return new Response('Media not found', { status: 404 });
+    const token = mediaUrl.pathname.startsWith('/') ? mediaUrl.pathname.slice(1) : mediaUrl.pathname;
     const filePath = transcodedMedia.get(token);
     if (!filePath || !fs.existsSync(filePath)) return new Response('Media not found', { status: 404 });
     return net.fetch(pathToFileURL(filePath).toString());
