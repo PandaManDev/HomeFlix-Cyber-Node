@@ -1118,8 +1118,14 @@
                 typeof window.homeflixDesktop.transcodeLocalMedia === 'function' &&
                 typeof window.homeflixDesktop.transcodeRemoteMedia === 'function';
             const isLocalFile = activeItem && activeItem.type === 'local' && activeItem.localPath && desktopConverter;
-            const isRemoteUrl = activeItem && activeItem.type === 'url' &&
-                /^https?:\\/\\//i.test(activeItem.url || '') && desktopConverter;
+            const isRemoteUrl = activeItem && activeItem.type === 'url' && (() => {
+                try {
+                    const parsedUrl = new URL(activeItem.url);
+                    return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
+                } catch (_) {
+                    return false;
+                }
+            })() && desktopConverter;
             const reason = code === 2
                 ? 'Network error while loading this video. The host may block browser playback.'
                 : code === 3
