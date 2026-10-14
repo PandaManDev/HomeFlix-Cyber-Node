@@ -1138,7 +1138,7 @@
             if ((isLocalFile || isRemoteUrl) && !activeItem.transcodeAttempted) {
                 activeItem.transcodeAttempted = true;
                 showToast(isRemoteUrl
-                    ? 'Preparing this URL for HomeFlix playback… Downloading and converting the stream may take a while.'
+                    ? 'Opening this stream through HomeFlix’s live converter…'
                     : 'Preparing this video for HomeFlix playback… This can take a few minutes for large files.');
                 try {
                     const convertedUrl = isLocalFile
