@@ -274,6 +274,16 @@ function createWindow() {
 app.whenReady().then(() => {
   app.setAppUserModelId(APP_ID);
   ipcMain.handle('homeflix:remote-info', () => getRemoteInfo());
+  ipcMain.handle('homeflix:open-local-media', async (_event, filePath) => {
+    if (typeof filePath !== 'string' || !path.isAbsolute(filePath)) {
+      throw new Error('A valid local media file path is required.');
+    }
+    const fs = require('node:fs');
+    if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+      throw new Error('The selected media file could not be found.');
+    }
+    return shell.openPath(filePath);
+  });
   ipcMain.on('homeflix:discord-presence', (_event, presence) => {
     if (presence && presence.clear) clearDiscordPresence();
     else updateDiscordPresence(presence);
