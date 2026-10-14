@@ -13,6 +13,7 @@ const DISCORD_CLIENT_ID = '1559626336795107379';
 protocol.registerSchemesAsPrivileged([{ scheme: 'homeflix-media', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }]);
 const transcodedMedia = new Map();
 const activeTranscodes = new Map();
+const remoteStreamSources = new Map();
 
 const APP_ID = 'com.homeflix.cybernode';
 const WEB_URL = 'https://homeflix-cyber-node.vercel.app/';
@@ -283,11 +284,64 @@ app.whenReady().then(() => {
   app.setAppUserModelId(APP_ID);
   protocol.handle('homeflix-media', request => {
     const mediaUrl = new URL(request.url);
-    if (mediaUrl.hostname !== 'converted') return new Response('Media not found', { status: 404 });
     const token = mediaUrl.pathname.startsWith('/') ? mediaUrl.pathname.slice(1) : mediaUrl.pathname;
-    const filePath = transcodedMedia.get(token);
-    if (!filePath || !fs.existsSync(filePath)) return new Response('Media not found', { status: 404 });
-    return net.fetch(pathToFileURL(filePath).toString());
+    if (mediaUrl.hostname === 'converted') {
+      const filePath = transcodedMedia.get(token);
+      if (!filePath || !fs.existsSync(filePath)) return new Response('Media not found', { status: 404 });
+      return net.fetch(pathToFileURL(filePath).toString());
+    }
+    if (mediaUrl.hostname !== 'stream') return new Response('Media not found', { status: 404 });
+    const sourceUrl = remoteStreamSources.get(token);
+    if (!sourceUrl) return new Response('Stream not found', { status: 404 });
+    let ffmpegPath;
+    try { ffmpegPath = require('ffmpeg-static'); } catch (_) {}
+    if (ffmpegPath && ffmpegPath.includes('app.asar')) ffmpegPath = ffmpegPath.replace('app.asar', 'app.asar.unpacked');
+    if (!ffmpegPath || !fs.existsSync(ffmpegPath)) return new Response('The built-in video converter is missing', { status: 500 });
+    const args = [
+      '-hide_banner', '-loglevel', 'error', '-nostdin', '-rw_timeout', '30000000',
+      '-user_agent', 'Mozilla/5.0 HomeFlixCyberNode',
+      '-i', sourceUrl, '-map', '0:v:0', '-map', '0:a:0?',
+      '-sn', '-dn', '-c:v', 'libx264', '-preset', 'ultrafast', '-tune', 'zerolatency',
+      '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k',
+      '-f', 'mp4', '-movflags', 'frag_keyframe+empty_moov+default_base_moof', 'pipe:1'
+    ];
+    let child;
+    try { child = spawn(ffmpegPath, args, { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }); }
+    catch (error) { return new Response('Could not start stream converter: ' + error.message, { status: 500 }); }
+    const body = new ReadableStream({
+      start(controller) {
+        let sentBytes = 0;
+        let settled = false;
+        child.stdout.on('data', chunk => {
+          sentBytes += chunk.length;
+          try { controller.enqueue(new Uint8Array(chunk)); } catch (_) {}
+        });
+        child.stderr.on('data', chunk => {
+          // Keep stderr drained so FFmpeg cannot block; diagnostics stay out of the media response.
+        });
+        child.once('error', error => {
+          if (settled) return;
+          settled = true;
+          try { controller.error(error); } catch (_) {}
+        });
+        child.once('close', code => {
+          if (settled) return;
+          settled = true;
+          if (code === 0 && sentBytes > 0) {
+            try { controller.close(); } catch (_) {}
+          } else {
+            try { controller.error(new Error('The stream ended or FFmpeg could not read this URL.')); } catch (_) {}
+          }
+        });
+      },
+      cancel() { try { child.kill('SIGKILL'); } catch (_) {} }
+    });
+    return new Response(body, { status: 200, headers: {
+      'Content-Type': 'video/mp4',
+      'Cache-Control': 'no-store',
+      'Access-Control-Allow-Origin': '*',
+      'Accept-Ranges': 'none'
+    }});
   });
   ipcMain.handle('homeflix:remote-info', () => getRemoteInfo());
   ipcMain.handle('homeflix:open-local-media', async (_event, filePath) => {
@@ -301,46 +355,18 @@ app.whenReady().then(() => {
     return shell.openPath(filePath);
   });
   ipcMain.handle('homeflix:transcode-remote-media', async (_event, sourceUrl) => {
-    if (typeof sourceUrl !== 'string' || sourceUrl.length > 8192) throw new Error('A valid video URL is required.');
+    if (typeof sourceUrl !== 'string' || sourceUrl.length > 8192) throw new Error('A valid video or stream URL is required.');
     let parsed;
     try { parsed = new URL(sourceUrl); } catch (_) { throw new Error('That video URL is invalid.'); }
-    if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('Only HTTP and HTTPS video URLs can be converted.');
+    if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('Only HTTP and HTTPS video/stream URLs can be played.');
     let ffmpegPath;
     try { ffmpegPath = require('ffmpeg-static'); } catch (_) {}
     if (ffmpegPath && ffmpegPath.includes('app.asar')) ffmpegPath = ffmpegPath.replace('app.asar', 'app.asar.unpacked');
-    if (!ffmpegPath || !fs.existsSync(ffmpegPath)) throw new Error('The built-in video converter is missing. Reinstall HomeFlix Cyber Node using the latest installer.');
-    const key = 'remote:' + sourceUrl;
-    if (activeTranscodes.has(key)) return activeTranscodes.get(key);
+    if (!ffmpegPath || !fs.existsSync(ffmpegPath)) throw new Error('The built-in stream converter is missing. Reinstall HomeFlix Cyber Node using the latest installer.');
     const crypto = require('node:crypto');
     const token = crypto.randomBytes(24).toString('hex');
-    const outputDir = path.join(app.getPath('temp'), 'homeflix-cyber-node', 'converted');
-    fs.mkdirSync(outputDir, { recursive: true });
-    const outputPath = path.join(outputDir, token + '.mp4');
-    const job = new Promise((resolve, reject) => {
-      const args = [
-        '-hide_banner', '-loglevel', 'error', '-y', '-rw_timeout', '30000000',
-        '-user_agent', 'Mozilla/5.0 HomeFlixCyberNode',
-        '-i', sourceUrl,
-        '-map', '0:v:0', '-map', '0:a:0?', '-sn', '-dn',
-        '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-pix_fmt', 'yuv420p',
-        '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', outputPath
-      ];
-      const child = spawn(ffmpegPath, args, { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });
-      let errorOutput = '';
-      child.stderr.on('data', chunk => { errorOutput = (errorOutput + chunk.toString()).slice(-4000); });
-      child.once('error', error => reject(new Error('Could not start the video converter: ' + error.message)));
-      child.once('close', code => {
-        if (code !== 0 || !fs.existsSync(outputPath) || fs.statSync(outputPath).size === 0) {
-          try { fs.rmSync(outputPath, { force: true }); } catch (_) {}
-          reject(new Error('HomeFlix could not read or convert that URL. Use a direct video/stream URL; pages that require login, cookies, DRM, or a special streaming extractor may not work. ' + (errorOutput.trim() || 'The host may block direct access or use an unsupported stream.')));
-          return;
-        }
-        transcodedMedia.set(token, outputPath);
-        resolve('homeflix-media://converted/' + token);
-      });
-    }).finally(() => activeTranscodes.delete(key));
-    activeTranscodes.set(key, job);
-    return job;
+    remoteStreamSources.set(token, sourceUrl);
+    return 'homeflix-media://stream/' + token;
   });
   ipcMain.handle('homeflix:transcode-local-media', async (_event, filePath) => {
     if (typeof filePath !== 'string' || !path.isAbsolute(filePath)) throw new Error('A valid local media file path is required.');
