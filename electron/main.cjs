@@ -1,10 +1,18 @@
-const { app, BrowserWindow, shell, ipcMain } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, protocol, net } = require('electron');
 const path = require('node:path');
+const fs = require('node:fs');
+const { spawn } = require('node:child_process');
+const { pathToFileURL } = require('node:url');
 const os = require('node:os');
 const express = require('express');
 const DiscordRPC = require('discord-rpc');
 
 const DISCORD_CLIENT_ID = '1559626336795107379';
+
+// A privileged streaming scheme lets Chromium play converted files without exposing arbitrary disk paths.
+protocol.registerSchemesAsPrivileged([{ scheme: 'homeflix-media', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }]);
+const transcodedMedia = new Map();
+const activeTranscodes = new Map();
 
 const APP_ID = 'com.homeflix.cybernode';
 const WEB_URL = 'https://homeflix-cyber-node.vercel.app/';
@@ -273,6 +281,12 @@ function createWindow() {
 }
 app.whenReady().then(() => {
   app.setAppUserModelId(APP_ID);
+  protocol.handle('homeflix-media', request => {
+    const token = new URL(request.url).pathname.replace(/^\\//, '');
+    const filePath = transcodedMedia.get(token);
+    if (!filePath || !fs.existsSync(filePath)) return new Response('Media not found', { status: 404 });
+    return net.fetch(pathToFileURL(filePath).toString());
+  });
   ipcMain.handle('homeflix:remote-info', () => getRemoteInfo());
   ipcMain.handle('homeflix:open-local-media', async (_event, filePath) => {
     if (typeof filePath !== 'string' || !path.isAbsolute(filePath)) {
@@ -283,6 +297,38 @@ app.whenReady().then(() => {
       throw new Error('The selected media file could not be found.');
     }
     return shell.openPath(filePath);
+  });
+  ipcMain.handle('homeflix:transcode-local-media', async (_event, filePath) => {
+    if (typeof filePath !== 'string' || !path.isAbsolute(filePath)) throw new Error('A valid local media file path is required.');
+    if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) throw new Error('The selected media file could not be found.');
+    let ffmpegPath;
+    try { ffmpegPath = require('ffmpeg-static'); } catch (_) {}
+    if (ffmpegPath && ffmpegPath.includes('app.asar')) ffmpegPath = ffmpegPath.replace('app.asar', 'app.asar.unpacked');
+    if (!ffmpegPath || !fs.existsSync(ffmpegPath)) throw new Error('The built-in video converter is missing. Reinstall HomeFlix Cyber Node using the latest installer.');
+    const crypto = require('node:crypto');
+    const token = crypto.randomBytes(24).toString('hex');
+    const outputDir = path.join(app.getPath('temp'), 'homeflix-cyber-node', 'converted');
+    fs.mkdirSync(outputDir, { recursive: true });
+    const outputPath = path.join(outputDir, token + '.mp4');
+    if (activeTranscodes.has(filePath)) return activeTranscodes.get(filePath);
+    const job = new Promise((resolve, reject) => {
+      const args = ['-hide_banner', '-loglevel', 'error', '-y', '-i', filePath, '-map', '0:v:0', '-map', '0:a:0?', '-sn', '-dn', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', outputPath];
+      const child = spawn(ffmpegPath, args, { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });
+      let errorOutput = '';
+      child.stderr.on('data', chunk => { errorOutput = (errorOutput + chunk.toString()).slice(-4000); });
+      child.once('error', error => reject(new Error('Could not start the video converter: ' + error.message)));
+      child.once('close', code => {
+        if (code !== 0 || !fs.existsSync(outputPath) || fs.statSync(outputPath).size === 0) {
+          try { fs.rmSync(outputPath, { force: true }); } catch (_) {}
+          reject(new Error('This video could not be converted for HomeFlix playback. ' + (errorOutput.trim() || 'The file may be damaged or use an unsupported codec.')));
+          return;
+        }
+        transcodedMedia.set(token, outputPath);
+        resolve('homeflix-media://converted/' + token);
+      });
+    }).finally(() => activeTranscodes.delete(filePath));
+    activeTranscodes.set(filePath, job);
+    return job;
   });
   ipcMain.on('homeflix:discord-presence', (_event, presence) => {
     if (presence && presence.clear) clearDiscordPresence();
@@ -299,6 +345,8 @@ app.on('before-quit', () => {
   app.isQuitting = true;
   if (discordRetryTimer) clearTimeout(discordRetryTimer);
   clearDiscordPresence();
+  for (const filePath of transcodedMedia.values()) { try { fs.rmSync(filePath, { force: true }); } catch (_) {} }
+  transcodedMedia.clear();
   if (discordClient) { try { discordClient.destroy(); } catch (_) {} }
   if (remoteServer) remoteServer.close();
 });
