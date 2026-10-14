@@ -188,8 +188,8 @@
                         <p class="text-sm text-zinc-400 mt-2">Your videos, your library. Import media to build your collection.</p>
                     </div>
                     <div class="flex flex-wrap gap-2">
-                        <label class="cursor-pointer px-4 py-2.5 rounded-lg bg-[#e50914] hover:bg-red-700 text-white font-semibold text-sm transition"><i class="fa-solid fa-plus mr-2"></i>Add videos<input id="library-file-selector" type="file" class="hidden" multiple accept="video/*"></label>
-                        <label class="cursor-pointer px-4 py-2.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white font-semibold text-sm transition"><i class="fa-solid fa-folder-open mr-2"></i>Scan folder<input id="library-folder-selector" type="file" class="hidden" webkitdirectory directory multiple accept="video/*"></label>
+                        <label class="cursor-pointer px-4 py-2.5 rounded-lg bg-[#e50914] hover:bg-red-700 text-white font-semibold text-sm transition"><i class="fa-solid fa-plus mr-2"></i>Add videos<input id="library-file-selector" type="file" class="hidden" multiple accept="video/*,.mkv,.m4v,.avi,.mov,.mpg,.mpeg,.ts,.m2ts,.ogv,.3gp,.wmv,.flv"></label>
+                        <label class="cursor-pointer px-4 py-2.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white font-semibold text-sm transition"><i class="fa-solid fa-folder-open mr-2"></i>Scan folder<input id="library-folder-selector" type="file" class="hidden" webkitdirectory directory multiple accept="video/*,.mkv,.m4v,.avi,.mov,.mpg,.mpeg,.ts,.m2ts,.ogv,.3gp,.wmv,.flv"></label>
                         <button onclick="openLibrarySettings()" class="px-4 py-2.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white text-sm transition" title="Themes and remote"><i class="fa-solid fa-sliders mr-2"></i>Settings</button>
                     </div>
                 </div>
@@ -256,12 +256,12 @@
                         <label class="px-5 py-2.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-orbitron font-semibold text-xs tracking-wider cursor-pointer shadow-lg transition flex items-center space-x-2">
                             <i class="fa-solid fa-folder-open"></i>
                             <span>IMPORT FILES</span>
-                            <input type="file" id="file-selector" class="hidden" multiple accept="video/*">
+                            <input type="file" id="file-selector" class="hidden" multiple accept="video/*,.mkv,.m4v,.avi,.mov,.mpg,.mpeg,.ts,.m2ts,.ogv,.3gp,.wmv,.flv">
                         </label>
                         <label class="px-5 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-emerald-500/40 text-emerald-300 font-orbitron font-semibold text-xs tracking-wider cursor-pointer transition flex items-center space-x-2">
                             <i class="fa-solid fa-folder-tree"></i>
                             <span>IMPORT FOLDER</span>
-                            <input type="file" id="folder-selector" class="hidden" webkitdirectory directory multiple accept="video/*">
+                            <input type="file" id="folder-selector" class="hidden" webkitdirectory directory multiple accept="video/*,.mkv,.m4v,.avi,.mov,.mpg,.mpeg,.ts,.m2ts,.ogv,.3gp,.wmv,.flv">
                         </label>
                         </div>
                 </div>
@@ -391,7 +391,7 @@
             <div id="playlist-dropzone" class="p-3 bg-cyan-950/20 border-b border-cyan-500/20 text-center text-xs font-mono text-cyan-400/80 flex items-center justify-center space-x-2 transition hover:bg-cyan-950/40 cursor-pointer">
                 <i class="fa-solid fa-cloud-arrow-up"></i>
                 <span>Drop video files here or click to add</span>
-                <input type="file" id="playlist-file-input" class="hidden" multiple accept="video/*">
+                <input type="file" id="playlist-file-input" class="hidden" multiple accept="video/*,.mkv,.m4v,.avi,.mov,.mpg,.mpeg,.ts,.m2ts,.ogv,.3gp,.wmv,.flv">
             </div>
 
             <!-- Playlist Items Container -->
@@ -744,7 +744,8 @@
         function handleFiles(files) {
             let addedCount = 0;
             for (const file of files) {
-                if (file.type.startsWith('video/')) {
+                const videoExtensions = /\.(mp4|m4v|mkv|webm|mov|avi|mpg|mpeg|ts|m2ts|ogv|3gp|wmv|flv)$/i;
+                if ((file.type && file.type.startsWith('video/')) || videoExtensions.test(file.name || '')) {
                     const blobUrl = URL.createObjectURL(file);
                     const item = {
                         title: file.name,
@@ -1114,9 +1115,9 @@
             const reason = code === 2
                 ? 'Network error while loading this video. Check the connection or try another source.'
                 : code === 3
-                    ? 'The browser received the video but could not decode it. Try a different MP4 or WebM file.'
+                    ? 'This video codec is not supported by the built-in browser player. MKV files are detected, but some MKV codecs need a compatible desktop player such as mpv or VLC. Try an H.264/AAC MP4 or open this file in a desktop player.'
                     : code === 4
-                        ? 'The video source was rejected. This can happen when a remote host blocks cross-origin media or the codec is unsupported. Try a local MP4 (H.264/AAC).'
+                        ? 'The video source was rejected. This can happen when a remote host blocks cross-origin media or the codec is unsupported. MKV is a container, so support depends on its video/audio codecs; try an H.264/AAC MP4 or a compatible desktop player.'
                         : 'The video could not be loaded. Check the file or stream URL.';
             state.isPlaying = false;
             updatePlayIcons();
