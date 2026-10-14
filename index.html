@@ -875,22 +875,59 @@
             playlistItemsEl.innerHTML = html;
         }
 
-        function selectQueueItem(index) {
+        function isMkvStreamUrl(source) {
+            try {
+                const parsed = new URL(source);
+                if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
+                const pathname = decodeURIComponent(parsed.pathname).toLowerCase();
+                if (pathname.endsWith('.mkv')) return true;
+                return [...parsed.searchParams.values()].some(value => decodeURIComponent(value).toLowerCase().endsWith('.mkv'));
+            } catch (_) {
+                return false;
+            }
+        }
+
+        async function selectQueueItem(index) {
             if (index < 0 || index >= state.playlist.length) return;
             state.currentIndex = index;
             const item = state.playlist[index];
             syncLibraryMetadata(item);
-            
-            video.src = item.url;
-            video.load();
             syncDiscordPresence();
             currentTitleEl.textContent = item.title;
             currentMetaEl.textContent = `Node Source: ${item.type.toUpperCase()} | Index #${index + 1}`;
-            
+
             emptyStateOverlay.classList.add('hidden');
             renderPlaylist();
             renderLibrary();
-            
+
+            // MKV is a container, not a browser-playable codec. In the desktop app,
+            // send direct MKV stream URLs to FFmpeg immediately instead of waiting for Chromium to fail.
+            const desktop = window.homeflixDesktop;
+            const canConvertRemote = desktop && typeof desktop.transcodeRemoteMedia === 'function';
+            if (item.type === 'url' && isMkvStreamUrl(item.url) && canConvertRemote) {
+                item.transcodeAttempted = true;
+                showToast('Opening MKV stream through HomeFlix’s live converter…');
+                try {
+                    const convertedUrl = await desktop.transcodeRemoteMedia(item.url);
+                    if (state.playlist[state.currentIndex] !== item) return;
+                    item.transcodedUrl = convertedUrl;
+                    video.src = convertedUrl;
+                    video.load();
+                    await video.play().catch(() => {});
+                    state.isPlaying = !video.paused;
+                    updatePlayIcons();
+                    showToast('MKV stream opened in HomeFlix.');
+                    return;
+                } catch (error) {
+                    if (state.playlist[state.currentIndex] !== item) return;
+                    console.warn('MKV stream conversion failed; trying native playback:', error);
+                    showToast('MKV conversion failed; trying direct playback…');
+                }
+            }
+
+            video.src = item.url;
+            video.load();
+
             // Resume audio context if suspended
             if (state.audioContext && state.audioContext.state === 'suspended') {
                 state.audioContext.resume();
