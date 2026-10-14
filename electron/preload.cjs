@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('homeflixDesktop', Object.freeze({
   isDesktop: true,
   getRemoteInfo: () => ipcRenderer.invoke('homeflix:remote-info'),
   openLocalMedia: filePath => ipcRenderer.invoke('homeflix:open-local-media', filePath),
+  transcodeLocalMedia: filePath => ipcRenderer.invoke('homeflix:transcode-local-media', filePath),
   sendRemoteStatus: status => ipcRenderer.send('homeflix:remote-status', status),
   sendDiscordPresence: presence => ipcRenderer.send('homeflix:discord-presence', presence),
   onRemoteCommand: callback => {
