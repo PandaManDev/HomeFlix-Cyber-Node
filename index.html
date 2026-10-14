@@ -749,6 +749,7 @@
                     const blobUrl = URL.createObjectURL(file);
                     const item = {
                         title: file.name,
+                        localPath: window.homeflixDesktop && typeof file.path === 'string' ? file.path : null,
                         url: blobUrl,
                         type: 'local',
                         size: (file.size / (1024 * 1024)).toFixed(1) + ' MB',
@@ -1121,7 +1122,18 @@
                         : 'The video could not be loaded. Check the file or stream URL.';
             state.isPlaying = false;
             updatePlayIcons();
-            showToast(reason);
+            const activeItem = state.playlist[state.currentIndex];
+            const isLocalFile = activeItem && activeItem.type === 'local' && activeItem.localPath && window.homeflixDesktop && typeof window.homeflixDesktop.openLocalMedia === 'function';
+            if (isLocalFile) {
+                showToast('This file’s codec is not supported by the built-in player. You can open it in your computer’s default video player.');
+                if (window.confirm('HomeFlix cannot decode this file in its built-in player. Open it in your computer’s default video player instead?')) {
+                    window.homeflixDesktop.openLocalMedia(activeItem.localPath).then(errorMessage => {
+                        if (errorMessage) showToast('Could not open the external player: ' + errorMessage);
+                    }).catch(error => showToast('Could not open the external player: ' + error.message));
+                }
+            } else {
+                showToast(reason);
+            }
         });
 
         window.addEventListener('beforeunload', () => {
