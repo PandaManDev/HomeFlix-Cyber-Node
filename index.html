@@ -1114,35 +1114,48 @@
             if (!video.currentSrc) return;
             const code = video.error ? video.error.code : 0;
             const activeItem = state.playlist[state.currentIndex];
-            const isLocalFile = activeItem && activeItem.type === 'local' && activeItem.localPath &&
-                window.homeflixDesktop && typeof window.homeflixDesktop.transcodeLocalMedia === 'function';
+            const desktopConverter = window.homeflixDesktop &&
+                typeof window.homeflixDesktop.transcodeLocalMedia === 'function' &&
+                typeof window.homeflixDesktop.transcodeRemoteMedia === 'function';
+            const isLocalFile = activeItem && activeItem.type === 'local' && activeItem.localPath && desktopConverter;
+            const isRemoteUrl = activeItem && activeItem.type === 'url' &&
+                /^https?:\\/\\//i.test(activeItem.url || '') && desktopConverter;
             const reason = code === 2
-                ? 'Network error while loading this video. Check the connection or try another source.'
+                ? 'Network error while loading this video. The host may block browser playback.'
                 : code === 3
                     ? 'This video codec is not supported by the built-in browser player.'
                     : code === 4
                         ? 'The video source was rejected. The format or codec may not be supported.'
-                        : 'This video could not be played. The file may be damaged or use an unsupported format.';
+                        : 'This video could not be played. The file or stream may use an unsupported format.';
 
-            // Convert unsupported local codecs once, then play the converted file inside HomeFlix.
-            if (isLocalFile && !activeItem.transcodeAttempted) {
+            // In desktop mode, FFmpeg can convert local files and direct HTTP(S) media streams.
+            if ((isLocalFile || isRemoteUrl) && !activeItem.transcodeAttempted) {
                 activeItem.transcodeAttempted = true;
-                showToast('Preparing this video for HomeFlix playback… This can take a few minutes for large files.');
+                showToast(isRemoteUrl
+                    ? 'Preparing this URL for HomeFlix playback… Downloading and converting the stream may take a while.'
+                    : 'Preparing this video for HomeFlix playback… This can take a few minutes for large files.');
                 try {
-                    const convertedUrl = await window.homeflixDesktop.transcodeLocalMedia(activeItem.localPath);
+                    const convertedUrl = isLocalFile
+                        ? await window.homeflixDesktop.transcodeLocalMedia(activeItem.localPath)
+                        : await window.homeflixDesktop.transcodeRemoteMedia(activeItem.url);
                     if (state.playlist[state.currentIndex] !== activeItem) return;
                     activeItem.transcodedUrl = convertedUrl;
                     video.src = convertedUrl;
                     video.load();
                     await video.play().catch(() => {});
-                    showToast('Video converted. Playing inside HomeFlix.');
+                    showToast('Converted video is ready. Playing inside HomeFlix.');
                     return;
                 } catch (error) {
                     showToast('Could not convert this video: ' + (error && error.message ? error.message : 'Unknown conversion error'));
                     return;
                 }
             }
-            showToast(reason + (isLocalFile ? ' HomeFlix tried converting it, but conversion failed.' : ' For local files, use the HomeFlix desktop app for automatic conversion.'));
+            const desktopHint = isRemoteUrl
+                ? ' Use a direct video or stream URL; website pages requiring login, cookies, DRM, or a special extractor may not work.'
+                : isLocalFile
+                    ? ' HomeFlix already tried converting it, but conversion failed.'
+                    : ' Automatic conversion requires the HomeFlix desktop app.';
+            showToast(reason + desktopHint);
         });
 
         window.addEventListener('beforeunload', () => {
