@@ -2,6 +2,7 @@ const { app, BrowserWindow, shell, ipcMain, protocol, net } = require('electron'
 const path = require('node:path');
 const fs = require('node:fs');
 const { spawn } = require('node:child_process');
+const crypto = require('node:crypto');
 const { pathToFileURL } = require('node:url');
 const os = require('node:os');
 const express = require('express');
@@ -18,8 +19,10 @@ const remoteStreamSources = new Map();
 const APP_ID = 'com.homeflix.cybernode';
 const WEB_URL = 'https://homeflix-cyber-node.vercel.app/';
 const REMOTE_PORT = Number(process.env.HOMEFLIX_REMOTE_PORT || 47831);
-const pin = String(Math.floor(100000 + Math.random() * 900000));
-const tokens = new Set();
+const pin = String(crypto.randomInt(100000, 1000000));
+const tokens = new Map();
+const pairingAttempts = new Map();
+const TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 let mainWindow;
 let remoteServer;
 let discordClient;
@@ -111,14 +114,28 @@ function startRemoteServer() {
   serverApp.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'remote.html')));
   serverApp.get('/api/info', (_req, res) => res.json({ app: 'HomeFlix Cyber Node', name: os.hostname() }));
   serverApp.post('/api/pair', (req, res) => {
-    if (String(req.body?.pin || '') !== pin) return res.status(401).json({ error: 'Incorrect pairing PIN' });
-    const token = require('node:crypto').randomBytes(24).toString('hex');
-    tokens.add(token);
+    const ip = String(req.ip || req.socket?.remoteAddress || 'unknown');
+    const now = Date.now();
+    const attempt = pairingAttempts.get(ip) || { count: 0, resetAt: now + 10 * 60 * 1000 };
+    if (now > attempt.resetAt) { attempt.count = 0; attempt.resetAt = now + 10 * 60 * 1000; }
+    if (attempt.count >= 10) return res.status(429).json({ error: 'Too many pairing attempts. Wait 10 minutes and try again.' });
+    if (String(req.body?.pin || '') !== pin) {
+      attempt.count += 1;
+      pairingAttempts.set(ip, attempt);
+      return res.status(401).json({ error: 'Incorrect pairing PIN' });
+    }
+    pairingAttempts.delete(ip);
+    const token = crypto.randomBytes(32).toString('hex');
+    tokens.set(token, now + TOKEN_TTL_MS);
     res.json({ token, status: remoteStatus });
   });
   serverApp.use('/api', (req, res, next) => {
     const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
-    if (!token || !tokens.has(token)) return res.status(401).json({ error: 'Pair this phone with the desktop PIN first.' });
+    const expiresAt = token ? tokens.get(token) : null;
+    if (!expiresAt || expiresAt < Date.now()) {
+      if (token) tokens.delete(token);
+      return res.status(401).json({ error: 'Pair this phone with the desktop PIN first.' });
+    }
     next();
   });
   serverApp.get('/api/status', (_req, res) => {
