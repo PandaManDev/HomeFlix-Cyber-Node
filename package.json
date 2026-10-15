@@ -2,6 +2,7 @@
   "name": "homeflix-cyber-node",
   "version": "4.8.0",
   "description": "HomeFlix Cyber Node personal media library and desktop player",
+  "author": "PandaManDev",
   "main": "electron/main.cjs",
   "private": true,
   "scripts": {
@@ -9,7 +10,6 @@
     "make-icon": "node scripts/make-icon.cjs",
     "dist": "npm run make-icon && electron-builder --win nsis --publish never",
     "dist:dir": "npm run make-icon && electron-builder --win dir",
-    "dist:linux": "npm run make-icon && electron-builder --linux AppImage deb --x64 --publish never",
     "deploy:cloudflare": "npx wrangler deploy --config wrangler.jsonc",
     "preview:cloudflare": "npx wrangler dev --config wrangler.jsonc"
   },
@@ -66,27 +66,6 @@
       "installerHeaderIcon": "build/homeflix.ico"
     },
     "artifactName": "HomeFlix-Cyber-Node-Setup-${version}.${ext}",
-    "linux": {
-      "target": [
-        {
-          "target": "AppImage",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "deb",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "category": "AudioVideo",
-      "synopsis": "Personal media library and desktop player",
-      "description": "HomeFlix Cyber Node personal media library and desktop player",
-      "icon": "build/icons",
-      "maintainer": "PandaManDev"
-    },
     "asarUnpack": [
       "node_modules/ffmpeg-static/**"
     ],
