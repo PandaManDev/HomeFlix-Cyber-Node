@@ -65,3 +65,17 @@ The Cyber Node Tools panel adds browser-local quality-of-life features to the we
 - **Diagnostics:** Check whether a video element is present and whether the browser reports a network connection.
 
 Open **✦ NODE TOOLS** in the lower-right corner. Data is stored locally in the browser/Electron web storage; it is not automatically synced between devices. Export a backup before clearing browser data. The media itself is never included in the backup. The existing player and MKV/stream URL conversion pipeline remain in place.
+
+
+## Phone remote control
+
+HomeFlix Cyber Node's desktop build includes a phone-friendly remote web app served by the desktop itself.
+
+1. Start HomeFlix Cyber Node on the desktop and keep it open.
+2. Open **Settings** in the desktop app and find the **Remote** address and six-digit pairing PIN.
+3. Connect your phone to the same trusted private Wi-Fi network.
+4. Type the full local address shown in Settings (usually `http://DESKTOP-IP:47831/`) into your phone browser.
+5. Enter the six-digit PIN to pair. You can then control play/pause, previous/next, seek by 10 seconds or scrub the timeline, volume, mute, and fullscreen.
+6. Bookmark the remote page or use your mobile browser's **Add to Home Screen** option if available.
+
+The phone remote is served by the installed desktop app, so the computer must be on and HomeFlix must be running. If the page will not load, allow HomeFlix through Windows Firewall on **Private networks** and check that both devices are on the same Wi-Fi. Pairing attempts are rate-limited; session tokens expire after 30 days. Do not expose port 47831 to the public internet or use the remote on an untrusted network. The phone remote controls the desktop player; it does not stream the desktop's video to the phone.
