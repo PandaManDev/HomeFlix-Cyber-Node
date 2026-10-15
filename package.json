@@ -63,7 +63,14 @@
       "deleteAppDataOnUninstall": false,
       "installerIcon": "build/homeflix.ico",
       "uninstallerIcon": "build/homeflix.ico",
-      "installerHeaderIcon": "build/homeflix.ico"
+      "installerHeaderIcon": "build/homeflix.ico",
+      "include": "build/installer.nsh",
+      "installerLanguages": [
+        "en_US"
+      ],
+      "displayLanguageSelector": false,
+      "menuCategory": "HomeFlix",
+      "uninstallDisplayName": "HomeFlix Cyber Node"
     },
     "artifactName": "HomeFlix-Cyber-Node-Setup-${version}.${ext}",
     "asarUnpack": [
