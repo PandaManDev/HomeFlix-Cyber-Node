@@ -129,12 +129,54 @@ function startRemoteServer() {
       res.json(remoteStatus);
     }
   });
-  serverApp.post('/api/command', (req, res) => {
+  serverApp.post('/api/command', async (req, res) => {
     const allowed = new Set(['toggle', 'play', 'pause', 'seek', 'volume', 'mute', 'next', 'previous', 'fullscreen', 'status']);
     const action = String(req.body?.action || '');
     if (!allowed.has(action)) return res.status(400).json({ error: 'Unsupported command' });
-    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('homeflix:remote-command', { action, value: req.body?.value });
-    res.json({ ok: true });
+    if (!mainWindow || mainWindow.isDestroyed()) return res.status(503).json({ error: 'HomeFlix desktop is not available.' });
+    const rawValue = Number(req.body?.value);
+    const safeValue = Number.isFinite(rawValue) ? Math.max(-86400, Math.min(86400, rawValue)) : 0;
+    const script = `(() => {
+      const video = document.querySelector('#cyber-video, video');
+      const action = ${JSON.stringify(action)};
+      const value = ${JSON.stringify(safeValue)};
+      if (action === 'status') {
+        if (video) window.homeflixDesktop?.sendRemoteStatus?.({
+          title: (document.querySelector('#current-title, [data-media-title], .player-title')?.textContent || document.title || 'HomeFlix').trim().slice(0,128),
+          playing: !video.paused && !video.ended,
+          currentTime: Number.isFinite(video.currentTime) ? video.currentTime : 0,
+          duration: Number.isFinite(video.duration) ? video.duration : 0,
+          volume: video.muted ? 0 : video.volume
+        });
+        return;
+      }
+      if (!video) throw new Error('No video is currently loaded in HomeFlix.');
+      switch (action) {
+        case 'toggle': video.paused ? video.play() : video.pause(); break;
+        case 'play': video.play(); break;
+        case 'pause': video.pause(); break;
+        case 'seek': video.currentTime = Math.max(0, Math.min(Number.isFinite(video.duration) ? video.duration : Infinity, video.currentTime + value)); break;
+        case 'volume': video.volume = Math.max(0, Math.min(1, value)); video.muted = false; break;
+        case 'mute': video.muted = !video.muted; break;
+        case 'fullscreen': (video.requestFullscreen ? video.requestFullscreen() : document.documentElement.requestFullscreen?.()); break;
+        case 'next': {
+          const button = [...document.querySelectorAll('button')].find(b => /next|skip/i.test((b.getAttribute('aria-label') || '') + ' ' + (b.title || '') + ' ' + b.innerText));
+          if (button) button.click(); else throw new Error('No Next control was found in the current player.');
+          break;
+        }
+        case 'previous': {
+          const button = [...document.querySelectorAll('button')].find(b => /previous|back/i.test((b.getAttribute('aria-label') || '') + ' ' + (b.title || '') + ' ' + b.innerText));
+          if (button) button.click(); else video.currentTime = 0;
+          break;
+        }
+      }
+    })()`;
+    try {
+      await mainWindow.webContents.executeJavaScript(script, true);
+      res.json({ ok: true });
+    } catch (error) {
+      res.status(400).json({ error: error.message || 'Could not control the current player.' });
+    }
   });
   remoteServer = serverApp.listen(REMOTE_PORT, '0.0.0.0', () => {
     console.log(`HomeFlix phone remote listening on port ${REMOTE_PORT}`);
@@ -249,6 +291,26 @@ function installDiscordPageBridge() {
   })()`).catch(error => console.warn('Could not attach HomeFlix Discord page bridge:', error.message));
 }
 
+function installRemotePairingPanel() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.webContents.executeJavaScript(`(async () => {
+    if (document.getElementById('homeflix-phone-remote-card')) return;
+    const info = await window.homeflixDesktop?.getRemoteInfo?.();
+    if (!info) return;
+    const card = document.createElement('aside');
+    card.id = 'homeflix-phone-remote-card';
+    card.style.cssText = 'position:fixed;right:18px;bottom:18px;z-index:2147483000;width:min(340px,calc(100vw - 36px));padding:16px;border:1px solid #3f3f46;border-radius:16px;background:#09090bef;color:#fff;font:14px system-ui;box-shadow:0 12px 40px #0009;backdrop-filter:blur(14px)';
+    const title = document.createElement('div'); title.textContent = 'HomeFlix Phone Remote'; title.style.cssText = 'font-weight:800;font-size:16px;margin-bottom:8px;color:#f87171';
+    const note = document.createElement('div'); note.textContent = 'Connect your phone to the same Wi-Fi, then open this address:'; note.style.cssText = 'color:#d4d4d8;font-size:12px;margin-bottom:8px';
+    const address = document.createElement('a'); address.href = info.url; address.textContent = info.url; address.style.cssText = 'display:block;color:#fff;font-weight:700;overflow-wrap:anywhere;margin-bottom:10px';
+    const pinLabel = document.createElement('div'); pinLabel.textContent = 'PAIRING PIN'; pinLabel.style.cssText = 'color:#a1a1aa;font-size:10px;letter-spacing:.18em;margin-bottom:3px';
+    const pin = document.createElement('div'); pin.textContent = info.pin; pin.style.cssText = 'font-size:30px;letter-spacing:.25em;font-weight:900;margin-bottom:8px';
+    const hint = document.createElement('div'); hint.textContent = 'Keep this PIN private. Remote control is available to paired phones on your network.'; hint.style.cssText = 'color:#a1a1aa;font-size:11px;line-height:1.4';
+    const close = document.createElement('button'); close.textContent = 'Hide'; close.style.cssText = 'position:absolute;right:12px;top:12px;background:#27272a;color:#fff;border:0;border-radius:8px;padding:5px 9px;cursor:pointer'; close.onclick = () => card.remove();
+    card.append(title,note,address,pinLabel,pin,hint,close); document.body.appendChild(card);
+  })()`).catch(error => console.warn('Could not show HomeFlix phone remote pairing:', error.message));
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1440, height: 920, minWidth: 900, minHeight: 620,
@@ -270,7 +332,7 @@ function createWindow() {
     const allowed = url.startsWith(WEB_URL) || url.startsWith('file://');
     if (!allowed) { event.preventDefault(); shell.openExternal(url); }
   });
-  mainWindow.webContents.on('did-finish-load', installDiscordPageBridge);
+  mainWindow.webContents.on('did-finish-load', () => { installDiscordPageBridge(); installRemotePairingPanel(); });
   mainWindow.loadURL(WEB_URL);
   mainWindow.webContents.on('did-fail-load', (_event, code, description, validatedURL, isMainFrame) => {
     if (isMainFrame && !validatedURL.startsWith('file://') && code !== -3) {
