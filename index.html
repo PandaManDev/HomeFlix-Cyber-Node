@@ -1582,5 +1582,97 @@
             return `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
         }
     </script>
+
+    <style id="homeflix-upgrade-styles">
+      #hf-upgrade-launcher{position:fixed;right:18px;bottom:18px;z-index:99990;background:linear-gradient(135deg,#06b6d4,#7c3aed);color:white;border:1px solid #67e8f9;border-radius:999px;padding:12px 17px;font:700 12px Inter,sans-serif;letter-spacing:.06em;box-shadow:0 8px 30px #0009,0 0 24px #06b6d455;cursor:pointer}
+      #hf-upgrade-panel{position:fixed;inset:0;z-index:99991;background:#020617dd;backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;padding:16px;font-family:Inter,sans-serif;color:#f8fafc}
+      #hf-upgrade-panel.open{display:flex}
+      .hf-shell{width:min(920px,100%);max-height:90vh;overflow:auto;background:#0b1220;border:1px solid #334155;border-radius:22px;box-shadow:0 25px 90px #000a}
+      .hf-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px 22px;border-bottom:1px solid #263244;position:sticky;top:0;background:#0b1220;z-index:2}
+      .hf-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:18px}
+      .hf-card{border:1px solid #263244;border-radius:15px;padding:15px;background:linear-gradient(145deg,#111c2f,#0b1220);min-width:0}
+      .hf-card h3{font-size:13px;font-weight:800;color:#67e8f9;letter-spacing:.08em;text-transform:uppercase;margin:0 0 10px}
+      .hf-btn{border:1px solid #334155;background:#172033;color:#f8fafc;border-radius:9px;padding:9px 11px;font-size:12px;font-weight:650;cursor:pointer}
+      .hf-btn:hover{border-color:#22d3ee;background:#1e293b}.hf-btn.primary{background:#0891b2;border-color:#22d3ee}
+      .hf-field{width:100%;background:#050b16;border:1px solid #334155;border-radius:9px;color:#fff;padding:9px 10px;font-size:13px;margin:5px 0 10px}
+      .hf-muted{font-size:12px;color:#94a3b8;line-height:1.5}.hf-list{display:grid;gap:7px;max-height:170px;overflow:auto}.hf-item{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px;border-radius:9px;background:#080f1c;font-size:12px}
+      @media(max-width:640px){#hf-upgrade-launcher{right:10px;bottom:10px;padding:10px 12px}.hf-grid{grid-template-columns:1fr;padding:12px}.hf-top{padding:15px}.hf-shell{max-height:94vh}}
+    </style>
+    <button id="hf-upgrade-launcher" type="button" aria-label="Open HomeFlix Cyber Node tools">✦ NODE TOOLS</button>
+    <div id="hf-upgrade-panel" role="dialog" aria-modal="true" aria-label="HomeFlix Node Tools">
+      <section class="hf-shell">
+        <header class="hf-top"><div><div style="font-size:11px;color:#67e8f9;letter-spacing:.2em">HOMEFLIX / CYBER NODE</div><div style="font-size:22px;font-weight:800;margin-top:4px">Personal Media Hub</div></div><button id="hf-upgrade-close" class="hf-btn" type="button" aria-label="Close tools">✕ Close</button></header>
+        <div class="hf-grid">
+          <section class="hf-card"><h3>Profiles</h3><label class="hf-muted" for="hf-profile">Active viewing profile</label><select id="hf-profile" class="hf-field"></select><div style="display:flex;gap:7px"><input id="hf-new-profile" class="hf-field" style="margin:0;flex:1" maxlength="32" placeholder="New profile name"><button id="hf-add-profile" class="hf-btn primary">Add</button></div><p class="hf-muted">Profiles keep favorites and watch progress separate on this browser/device.</p></section>
+          <section class="hf-card"><h3>Now Playing</h3><div id="hf-current-title" style="font-size:16px;font-weight:750;overflow-wrap:anywhere">Nothing selected yet</div><div id="hf-current-meta" class="hf-muted" style="margin:7px 0 12px">Load a local file or stream URL in the player.</div><div style="display:flex;flex-wrap:wrap;gap:7px"><button id="hf-favorite-current" class="hf-btn">☆ Add favorite</button><button id="hf-mark-watched" class="hf-btn">✓ Mark watched</button></div></section>
+          <section class="hf-card"><h3>Continue Watching</h3><div id="hf-progress-list" class="hf-list"></div><p class="hf-muted" style="margin-top:9px">Progress is saved locally as you watch. Browser streaming depends on the source's supported format and access permissions.</p></section>
+          <section class="hf-card"><h3>My List</h3><div id="hf-favorite-list" class="hf-list"></div><p class="hf-muted" style="margin-top:9px">Favorites are private to this profile and device unless you export a backup.</p></section>
+          <section class="hf-card"><h3>Cyber Mode</h3><label class="hf-muted" for="hf-accent">Accent color</label><select id="hf-accent" class="hf-field"><option value="#06b6d4">Cyber Cyan</option><option value="#a78bfa">Neon Purple</option><option value="#10b981">Matrix Green</option><option value="#ec4899">Neon Pink</option><option value="#f59e0b">Amber</option></select><div style="display:flex;gap:7px;flex-wrap:wrap"><button id="hf-toggle-crt" class="hf-btn">Toggle scanlines</button><button id="hf-surprise" class="hf-btn">Surprise me</button></div><p class="hf-muted" style="margin-top:9px">Accent and scanline preferences are saved on this device.</p></section>
+          <section class="hf-card"><h3>Backup & Diagnostics</h3><div style="display:flex;gap:7px;flex-wrap:wrap"><button id="hf-export" class="hf-btn primary">Export backup</button><button id="hf-import" class="hf-btn">Import backup</button><input id="hf-import-file" type="file" accept="application/json,.json" hidden></div><div id="hf-diagnostics" class="hf-muted" style="margin-top:12px">Checking player status…</div><p class="hf-muted" style="margin-top:8px">Backup includes profiles, favorites, and progress—not media files or passwords.</p></section>
+        </div>
+      </section>
+    </div>
+    <script id="homeflix-upgrade-runtime">
+    (() => {
+      'use strict';
+      const $ = id => document.getElementById(id);
+      const KEY = 'homeflix.cybernode.upgrade.v1';
+      const safeRead = () => { try { const v=JSON.parse(localStorage.getItem(KEY)||'{}'); return v&&typeof v==='object'?v:{}; } catch { return {}; } };
+      let db = safeRead();
+      if (!Array.isArray(db.profiles) || !db.profiles.length) db.profiles=['Main'];
+      if (!db.active || !db.profiles.includes(db.active)) db.active=db.profiles[0];
+      if (!db.data || typeof db.data!=='object') db.data={};
+      if (!db.accent) db.accent='#06b6d4';
+      const persist = () => { try { localStorage.setItem(KEY,JSON.stringify(db)); } catch(e) { toast('Storage is full; export a backup or clear browser storage.'); } };
+      const profileData = () => { if(!db.data[db.active]) db.data[db.active]={favorites:[],progress:{},watched:[]}; const p=db.data[db.active]; p.favorites ||= []; p.progress ||= {}; p.watched ||= []; return p; };
+      const video = document.querySelector('video');
+      const titleNode = $('current-title') || $('video-title') || $('now-playing-title');
+      const currentTitle = () => {
+        const t=(titleNode?.textContent||$('hf-current-title')?.textContent||'').trim();
+        if(t && !/nothing selected|homeflix cyber node/i.test(t)) return t;
+        const src=video?.currentSrc||video?.src||'';
+        try { const u=new URL(src,location.href); const last=decodeURIComponent(u.pathname.split('/').pop()||''); return last && last!=='/'?last.replace(/\.[^.]+$/,''):'Current media'; } catch { return 'Current media'; }
+      };
+      const getKey = () => currentTitle().toLowerCase();
+      const toast = msg => { if(typeof window.showToast==='function') window.showToast(msg); else { const old=$('hf-upgrade-toast'); if(old)old.remove(); const n=document.createElement('div');n.id='hf-upgrade-toast';n.textContent=msg;n.style.cssText='position:fixed;z-index:99999;bottom:75px;right:18px;padding:12px 16px;border:1px solid #22d3ee;border-radius:10px;background:#0b1220;color:white;font:13px Inter,sans-serif;box-shadow:0 8px 30px #0008';document.body.append(n);setTimeout(()=>n.remove(),2600); } };
+      const fmt = n => { n=Math.max(0,Math.floor(Number(n)||0)); return Math.floor(n/60)+':'+String(n%60).padStart(2,'0'); };
+      function render(){
+        $('hf-profile').innerHTML=''; db.profiles.forEach(name=>{const o=document.createElement('option');o.value=name;o.textContent=name;$('hf-profile').append(o)});$('hf-profile').value=db.active;
+        $('hf-accent').value=db.accent;
+        const p=profileData(), title=currentTitle(), key=getKey();
+        $('hf-current-title').textContent=title;
+        $('hf-current-meta').textContent=video&&Number.isFinite(video.duration)&&video.duration>0?fmt(video.currentTime)+' / '+fmt(video.duration):'Playback details appear when media is loaded.';
+        $('hf-favorite-current').textContent=p.favorites.includes(key)?'★ Remove favorite':'☆ Add favorite';
+        const progress=Object.entries(p.progress).filter(([,v])=>v&&v.duration>0&&v.time>5&&v.time/v.duration<.96).sort((a,b)=>(b[1].updated||0)-(a[1].updated||0));
+        $('hf-progress-list').innerHTML=''; if(!progress.length) $('hf-progress-list').innerHTML='<div class="hf-muted">Nothing to resume yet. Start watching something.</div>';
+        progress.slice(0,12).forEach(([k,v])=>{const row=document.createElement('div');row.className='hf-item';const label=document.createElement('span');label.textContent=v.title||k;const meta=document.createElement('span');meta.className='hf-muted';meta.textContent=Math.round(v.time/v.duration*100)+'%';row.append(label,meta);row.title='Saved at '+fmt(v.time);$('hf-progress-list').append(row);});
+        $('hf-favorite-list').innerHTML=''; if(!p.favorites.length) $('hf-favorite-list').innerHTML='<div class="hf-muted">Your list is empty. Add the current title while it is playing.</div>';
+        p.favorites.forEach(k=>{const row=document.createElement('div');row.className='hf-item';const label=document.createElement('span');label.textContent=k;const rm=document.createElement('button');rm.className='hf-btn';rm.textContent='Remove';rm.onclick=()=>{p.favorites=p.favorites.filter(x=>x!==k);persist();render()};row.append(label,rm);$('hf-favorite-list').append(row);});
+        $('hf-diagnostics').textContent='Player: '+(video?'video element detected':'no video element found')+' · Network: '+(navigator.onLine?'online':'offline')+' · Storage: '+(navigator.storage&&navigator.storage.estimate?'available':'browser-managed');
+      }
+      $('hf-upgrade-launcher').addEventListener('click',()=>{render();$('hf-upgrade-panel').classList.add('open');});
+      $('hf-upgrade-close').addEventListener('click',()=>$('hf-upgrade-panel').classList.remove('open'));
+      $('hf-upgrade-panel').addEventListener('click',e=>{if(e.target===$('hf-upgrade-panel'))$('hf-upgrade-panel').classList.remove('open')});
+      document.addEventListener('keydown',e=>{if(e.key==='Escape')$('hf-upgrade-panel').classList.remove('open')});
+      $('hf-profile').addEventListener('change',e=>{db.active=e.target.value;persist();render();});
+      $('hf-add-profile').addEventListener('click',()=>{const name=$('hf-new-profile').value.trim().slice(0,32);if(!name)return;if(db.profiles.some(x=>x.toLowerCase()===name.toLowerCase()))return toast('That profile already exists.');db.profiles.push(name);db.active=name;$('hf-new-profile').value='';persist();render();toast('Profile created.');});
+      $('hf-new-profile').addEventListener('keydown',e=>{if(e.key==='Enter')$('hf-add-profile').click()});
+      $('hf-favorite-current').addEventListener('click',()=>{const p=profileData(),k=getKey();p.favorites=p.favorites.includes(k)?p.favorites.filter(x=>x!==k):[...p.favorites,k];persist();render();toast(p.favorites.includes(k)?'Added to My List.':'Removed from My List.');});
+      $('hf-mark-watched').addEventListener('click',()=>{const p=profileData(),k=getKey();if(!p.watched.includes(k))p.watched.push(k);delete p.progress[k];persist();render();toast('Marked watched for '+db.active+'.');});
+      $('hf-accent').addEventListener('change',e=>{db.accent=e.target.value;document.documentElement.style.setProperty('--hf-accent',db.accent);const b=$('hf-upgrade-launcher');if(b)b.style.background='linear-gradient(135deg,'+db.accent+',#7c3aed)';persist();});
+      if(db.accent){document.documentElement.style.setProperty('--hf-accent',db.accent);$('hf-upgrade-launcher').style.background='linear-gradient(135deg,'+db.accent+',#7c3aed)';}
+      $('hf-toggle-crt').addEventListener('click',()=>{document.body.classList.toggle('crt-off');db.crtOff=document.body.classList.contains('crt-off');persist();toast(db.crtOff?'Scanlines disabled.':'Scanlines enabled.');});
+      if(db.crtOff)document.body.classList.add('crt-off');
+      $('hf-surprise').addEventListener('click',()=>{const cards=[...document.querySelectorAll('.library-card')];const visible=cards.filter(c=>c.offsetParent!==null);if(!visible.length)return toast('Import or scan your library first.');const card=visible[Math.floor(Math.random()*visible.length)];card.scrollIntoView({behavior:'smooth',block:'center'});card.click();toast('Your next pick is ready to explore.');$('hf-upgrade-panel').classList.remove('open');});
+      $('hf-export').addEventListener('click',()=>{const blob=new Blob([JSON.stringify({...db,exportedAt:new Date().toISOString(),app:'HomeFlix Cyber Node'},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='homeflix-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);});
+      $('hf-import').addEventListener('click',()=>$('hf-import-file').click());
+      $('hf-import-file').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{const incoming=JSON.parse(await file.text());if(!Array.isArray(incoming.profiles)||!incoming.data||typeof incoming.data!=='object')throw Error('Invalid HomeFlix backup');db={...db,profiles:incoming.profiles.filter(x=>typeof x==='string').slice(0,50),active:incoming.active,data:incoming.data,accent:incoming.accent||db.accent};if(!db.profiles.length)db.profiles=['Main'];if(!db.profiles.includes(db.active))db.active=db.profiles[0];persist();render();toast('Backup imported.');}catch(err){toast('Could not import: '+err.message)}finally{e.target.value='';}});
+      function saveProgress(){if(!video||!Number.isFinite(video.duration)||video.duration<=0)return;const p=profileData(),k=getKey();p.progress[k]={title:currentTitle(),time:video.currentTime,duration:video.duration,updated:Date.now()};if(video.currentTime/video.duration>=.96&&!p.watched.includes(k)){p.watched.push(k);delete p.progress[k]}persist();}
+      if(video){video.addEventListener('timeupdate',()=>{if(Math.floor(video.currentTime)%10===0)saveProgress()});video.addEventListener('pause',saveProgress);video.addEventListener('ended',()=>{const p=profileData(),k=getKey();if(!p.watched.includes(k))p.watched.push(k);delete p.progress[k];persist();render()});video.addEventListener('loadedmetadata',render);video.addEventListener('play',render);}
+      window.addEventListener('online',render);window.addEventListener('offline',render);
+      render();
+    })();
+    </script>
+
 </body>
 </html>
