@@ -38,7 +38,8 @@
       "index.html",
       "electron/**/*",
       "build/**/*",
-      "package.json"
+      "package.json",
+      "supabase-config.js"
     ],
     "asar": true,
     "win": {
