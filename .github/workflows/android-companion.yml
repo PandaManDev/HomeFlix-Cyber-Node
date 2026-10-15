@@ -22,7 +22,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-          cache: gradle
       - run: npm install
       - run: npx cap add android
       - name: Enable local network HTTP requests for desktop pairing
