@@ -1589,7 +1589,7 @@
     </script>
 
     <style id="homeflix-upgrade-styles">
-      #hf-upgrade-launcher{position:fixed;right:18px;bottom:18px;z-index:99990;background:linear-gradient(135deg,#06b6d4,#7c3aed);color:white;border:1px solid #67e8f9;border-radius:999px;padding:12px 17px;font:700 12px Inter,sans-serif;letter-spacing:.06em;box-shadow:0 8px 30px #0009,0 0 24px #06b6d455;cursor:pointer}
+      #hf-upgrade-launcher{position:fixed;right:18px;top:18px;z-index:99990;width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,.9);color:#e2e8f0;border:1px solid #475569;border-radius:10px;padding:0;font:700 18px Inter,sans-serif;box-shadow:0 8px 24px #0008;cursor:pointer}#hf-upgrade-launcher:hover{color:#67e8f9;border-color:#22d3ee;background:#172033}
       #hf-upgrade-panel{position:fixed;inset:0;z-index:99991;background:#020617dd;backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;padding:16px;font-family:Inter,sans-serif;color:#f8fafc}
       #hf-upgrade-panel.open{display:flex}
       .hf-shell{width:min(920px,100%);max-height:90vh;overflow:auto;background:#0b1220;border:1px solid #334155;border-radius:22px;box-shadow:0 25px 90px #000a}
@@ -1601,12 +1601,17 @@
       .hf-btn:hover{border-color:#22d3ee;background:#1e293b}.hf-btn.primary{background:#0891b2;border-color:#22d3ee}
       .hf-field{width:100%;background:#050b16;border:1px solid #334155;border-radius:9px;color:#fff;padding:9px 10px;font-size:13px;margin:5px 0 10px}
       .hf-muted{font-size:12px;color:#94a3b8;line-height:1.5}.hf-list{display:grid;gap:7px;max-height:170px;overflow:auto}.hf-item{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px;border-radius:9px;background:#080f1c;font-size:12px}
-      @media(max-width:640px){#hf-upgrade-launcher{right:10px;bottom:10px;padding:10px 12px}.hf-grid{grid-template-columns:1fr;padding:12px}.hf-top{padding:15px}.hf-shell{max-height:94vh}}
+      @media(max-width:640px){#hf-upgrade-launcher{right:10px;top:10px;width:38px;height:38px}.hf-grid{grid-template-columns:1fr;padding:12px}.hf-top{padding:15px}.hf-shell{max-height:94vh}}
     </style>
-    <button id="hf-upgrade-launcher" type="button" aria-label="Open HomeFlix Cyber Node tools">✦ NODE TOOLS</button>
+    <button id="hf-upgrade-launcher" type="button" aria-label="Open HomeFlix settings and tools" title="Settings and Node Tools"><i class="fa-solid fa-gear" aria-hidden="true"></i></button>
     <div id="hf-upgrade-panel" role="dialog" aria-modal="true" aria-label="HomeFlix Node Tools">
       <section class="hf-shell">
         <header class="hf-top"><div><div style="font-size:11px;color:#67e8f9;letter-spacing:.2em">HOMEFLIX / CYBER NODE</div><div style="font-size:22px;font-weight:800;margin-top:4px">Personal Media Hub</div></div><button id="hf-upgrade-close" class="hf-btn" type="button" aria-label="Close tools">✕ Close</button></header>
+        <div style="padding:14px 18px 0">
+          <a href="https://homeflix-tau.vercel.app/downloads/HomeFlix-Companion.apk" class="hf-btn primary" style="display:flex;align-items:center;justify-content:center;gap:10px;text-decoration:none;min-height:44px" title="Download HomeFlix Android Companion">
+            <i class="fa-brands fa-android" aria-hidden="true"></i><span>Download Android Companion</span><i class="fa-solid fa-download" aria-hidden="true"></i>
+          </a>
+        </div>
         <div class="hf-grid">
           <section class="hf-card"><h3>Profiles</h3><label class="hf-muted" for="hf-profile">Active viewing profile</label><select id="hf-profile" class="hf-field"></select><div style="display:flex;gap:7px"><input id="hf-new-profile" class="hf-field" style="margin:0;flex:1" maxlength="32" placeholder="New profile name"><button id="hf-add-profile" class="hf-btn primary">Add</button></div><p class="hf-muted">Profiles keep favorites and watch progress separate on this browser/device.</p></section>
           <section class="hf-card"><h3>Now Playing</h3><div id="hf-current-title" style="font-size:16px;font-weight:750;overflow-wrap:anywhere">Nothing selected yet</div><div id="hf-current-meta" class="hf-muted" style="margin:7px 0 12px">Load a local file or stream URL in the player.</div><div style="display:flex;flex-wrap:wrap;gap:7px"><button id="hf-favorite-current" class="hf-btn">☆ Add favorite</button><button id="hf-mark-watched" class="hf-btn">✓ Mark watched</button></div></section>
