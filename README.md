@@ -50,3 +50,18 @@ npm run dist
 ```
 
 The Windows NSIS installer is written to `release/`. The FFmpeg binary is unpacked from Electron's ASAR archive so it can be launched by the desktop app. A fresh installer must be built and installed for these changes to be available; pushing the source to GitHub does not update an already-installed copy of the desktop app automatically.
+
+
+## Cyber Node Personal Media Hub
+
+The Cyber Node Tools panel adds browser-local quality-of-life features to the website and Electron app:
+
+- **Profiles:** Keep per-profile favorites and viewing progress on the current device.
+- **Continue watching:** Automatically record playback position and mark media watched near completion.
+- **My List:** Add or remove the currently playing item from a profile's favorites.
+- **Cyber Mode:** Change the interface accent and toggle CRT scanlines.
+- **Surprise me:** Jump to a random visible library card.
+- **Backup and restore:** Export or import profile data, favorites, and progress as JSON.
+- **Diagnostics:** Check whether a video element is present and whether the browser reports a network connection.
+
+Open **✦ NODE TOOLS** in the lower-right corner. Data is stored locally in the browser/Electron web storage; it is not automatically synced between devices. Export a backup before clearing browser data. The media itself is never included in the backup. The existing player and MKV/stream URL conversion pipeline remain in place.
