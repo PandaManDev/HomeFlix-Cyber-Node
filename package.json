@@ -89,6 +89,29 @@
     },
     "asarUnpack": [
       "node_modules/ffmpeg-static/**"
+    ],
+    "fileAssociations": [
+      {
+        "ext": [
+          "mp4",
+          "m4v",
+          "mkv",
+          "webm",
+          "mov",
+          "avi",
+          "mpg",
+          "mpeg",
+          "m2ts",
+          "ts",
+          "ogv",
+          "3gp",
+          "wmv",
+          "flv"
+        ],
+        "name": "HomeFlix Video",
+        "role": "Viewer",
+        "isDefault": true
+      }
     ]
   }
 }
