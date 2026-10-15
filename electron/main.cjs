@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell, ipcMain, protocol, net } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, protocol, net, dialog } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const { spawn } = require('node:child_process');
@@ -15,6 +15,8 @@ protocol.registerSchemesAsPrivileged([{ scheme: 'homeflix-media', privileges: { 
 const transcodedMedia = new Map();
 const activeTranscodes = new Map();
 const remoteStreamSources = new Map();
+const sharedMediaFiles = new Map();
+let sharedMediaFolders = [];
 
 const APP_ID = 'com.homeflix.cybernode';
 const WEB_URL = 'https://homeflix-cyber-node.vercel.app/';
@@ -137,6 +139,59 @@ function startRemoteServer() {
       return res.status(401).json({ error: 'Pair this phone with the desktop PIN first.' });
     }
     next();
+  });
+  // Shared media library: folders are chosen locally on the desktop; only indexed video files are exposed to paired devices.
+  const sharedVideoExtensions = new Set(['.mkv','.mp4','.m4v','.webm','.mov','.avi','.mpg','.mpeg','.ts','.m2ts','.ogv','.3gp','.wmv','.flv']);
+  function refreshSharedMediaIndex() {
+    sharedMediaFiles.clear();
+    const seen = new Set();
+    const walk = (folder, depth = 0) => {
+      if (depth > 8) return;
+      let entries;
+      try { entries = fs.readdirSync(folder, { withFileTypes: true }); } catch { return; }
+      for (const entry of entries) {
+        if (entry.name.startsWith('.')) continue;
+        const fullPath = path.resolve(folder, entry.name);
+        if (entry.isDirectory()) { walk(fullPath, depth + 1); continue; }
+        if (!entry.isFile() || !sharedVideoExtensions.has(path.extname(entry.name).toLowerCase()) || seen.has(fullPath)) continue;
+        seen.add(fullPath);
+        const id = crypto.createHash('sha256').update(fullPath).digest('hex').slice(0, 24);
+        try {
+          const stat = fs.statSync(fullPath);
+          sharedMediaFiles.set(id, { id, path: fullPath, name: entry.name, size: stat.size, modified: stat.mtimeMs });
+        } catch {}
+      }
+    };
+    for (const folder of sharedMediaFolders) walk(folder);
+    return [...sharedMediaFiles.values()].map(({ id, name, size, modified }) => ({ id, name, size, modified }));
+  }
+  serverApp.get('/library', (_req, res) => res.sendFile(path.join(__dirname, 'media.html')));
+  serverApp.get('/api/library', (_req, res) => res.json({ folders: sharedMediaFolders.length, files: refreshSharedMediaIndex() }));
+  serverApp.post('/api/library/select', async (_req, res) => {
+    if (!mainWindow || mainWindow.isDestroyed()) return res.status(503).json({ error: 'Open HomeFlix on the desktop first.' });
+    try {
+      const picked = await dialog.showOpenDialog(mainWindow, { title: 'Choose folders to share with HomeFlix devices', properties: ['openDirectory', 'multiSelections'] });
+      if (picked.canceled || !picked.filePaths.length) return res.json({ canceled: true, files: refreshSharedMediaIndex() });
+      sharedMediaFolders = [...new Set([...sharedMediaFolders, ...picked.filePaths.map(p => path.resolve(p))])];
+      return res.json({ canceled: false, folders: sharedMediaFolders.length, files: refreshSharedMediaIndex() });
+    } catch (error) { return res.status(500).json({ error: error.message || 'Could not choose media folders.' }); }
+  });
+  serverApp.post('/api/library/clear', (_req, res) => {
+    sharedMediaFolders = [];
+    sharedMediaFiles.clear();
+    return res.json({ ok: true, files: [] });
+  });
+  serverApp.get('/api/media/:id', (req, res) => {
+    const item = sharedMediaFiles.get(String(req.params.id || ''));
+    if (!item) return res.status(404).json({ error: 'Media item not found. Refresh the library and try again.' });
+    try {
+      if (!fs.existsSync(item.path) || !fs.statSync(item.path).isFile()) return res.status(404).json({ error: 'The media file is no longer available.' });
+      res.setHeader('Cache-Control', 'no-store');
+      res.setHeader('Accept-Ranges', 'bytes');
+      return res.sendFile(item.path, { acceptRanges: true, cacheControl: false, dotfiles: 'deny' }, error => {
+        if (error && !res.headersSent) res.status(error.statusCode || 500).end();
+      });
+    } catch { return res.status(404).json({ error: 'The media file is no longer available.' }); }
   });
   serverApp.get('/api/status', (_req, res) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
