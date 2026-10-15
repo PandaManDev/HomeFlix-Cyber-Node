@@ -691,27 +691,52 @@
         if (savedDiscordWebPin && !window.homeflixDesktop) setDiscordWebStatus('Saved pairing PIN. Checking the desktop bridge when playback starts.');
 
         // Initialize Web Audio API for 300% Boost & Visualizer
+        function resumeAudioEngine() {
+            const ctx = state.audioContext;
+            if (ctx && ctx.state === 'suspended') {
+                // Browsers can suspend Web Audio during focus/fullscreen transitions.
+                ctx.resume().catch((err) => console.debug('Audio context resume deferred:', err));
+            }
+        }
+
         function initAudioEngine() {
-            if (state.audioContext) return;
+            if (state.audioContext) {
+                resumeAudioEngine();
+                return;
+            }
             try {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
-                state.audioContext = new AudioContext();
+                if (!AudioContext) return;
+                state.audioContext = new AudioContext({ latencyHint: 'playback' });
                 state.audioSource = state.audioContext.createMediaElementSource(video);
                 state.gainNode = state.audioContext.createGain();
                 state.analyser = state.audioContext.createAnalyser();
                 state.analyser.fftSize = 64;
+                state.analyser.smoothingTimeConstant = 0.8;
 
-                // Connect graph: source -> gain (volume/boost) -> analyser -> destination
+                // Keep a single, stable audio graph; do not recreate it on fullscreen/focus changes.
                 state.audioSource.connect(state.gainNode);
                 state.gainNode.connect(state.analyser);
                 state.analyser.connect(state.audioContext.destination);
-
-                // Set initial gain
                 state.gainNode.gain.value = parseFloat(volumeSlider.value);
+                resumeAudioEngine();
             } catch (e) {
                 console.warn('Web Audio API initialization note:', e);
+                // Native media playback remains available if Web Audio cannot initialize.
             }
         }
+
+        // Restore audio after browser/OS focus and fullscreen transitions without restarting playback.
+        ['focus', 'pageshow'].forEach((eventName) => {
+            window.addEventListener(eventName, resumeAudioEngine);
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) resumeAudioEngine();
+        });
+        document.addEventListener('fullscreenchange', () => {
+            // Defer until the browser finishes its fullscreen layout transition.
+            window.setTimeout(resumeAudioEngine, 80);
+        });
 
         // File Selector & Drag and Drop Setup
         const fileSelector = document.getElementById('file-selector');
@@ -1420,28 +1445,31 @@
         const miniCanvas = document.getElementById('mini-visualizer');
         const miniCtx2D = miniCanvas.getContext('2d');
 
-        function renderVisualizer() {
+        let lastVisualizerFrame = 0;
+        let visualizerData = null;
+        function renderVisualizer(timestamp = 0) {
             requestAnimationFrame(renderVisualizer);
+            // Limit decorative canvas work to ~24 FPS so fullscreen/layout changes
+            // cannot starve the media playback pipeline on slower machines.
+            if (timestamp - lastVisualizerFrame < 42) return;
+            lastVisualizerFrame = timestamp;
 
-
-
-            
             audioCtx2D.clearRect(0, 0, audioCanvas.width, audioCanvas.height);
             miniCtx2D.clearRect(0, 0, miniCanvas.width, miniCanvas.height);
 
             if (!state.analyser || !state.isPlaying) {
-                // Draw flat cyber line when paused
                 drawFlatLine(audioCtx2D, audioCanvas.width, audioCanvas.height);
                 drawFlatLine(miniCtx2D, miniCanvas.width, miniCanvas.height);
                 return;
             }
 
             const bufferLength = state.analyser.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
-            state.analyser.getByteFrequencyData(dataArray);
-
-            drawBars(audioCtx2D, audioCanvas.width, audioCanvas.height, dataArray, bufferLength);
-            drawBars(miniCtx2D, miniCanvas.width, miniCanvas.height, dataArray, bufferLength);
+            if (!visualizerData || visualizerData.length !== bufferLength) {
+                visualizerData = new Uint8Array(bufferLength);
+            }
+            state.analyser.getByteFrequencyData(visualizerData);
+            drawBars(audioCtx2D, audioCanvas.width, audioCanvas.height, visualizerData, bufferLength);
+            drawBars(miniCtx2D, miniCanvas.width, miniCanvas.height, visualizerData, bufferLength);
         }
 
         function drawFlatLine(ctx, w, h) {
