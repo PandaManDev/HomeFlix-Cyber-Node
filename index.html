@@ -999,6 +999,26 @@
             });
         }
 
+        // Handles files opened from Windows File Explorer through HomeFlix's file association.
+        window.homeflixOpenFileFromOS = async function(filePath) {
+            try {
+                const desktop = window.homeflixDesktop;
+                if (!desktop || typeof desktop.registerOpenFile !== 'function') return;
+                const playableUrl = await desktop.registerOpenFile(filePath);
+                const title = String(filePath).split(/[\\/]/).pop() || 'Local video';
+                const item = { title, url: playableUrl, type: 'local', localPath: filePath, size: 'Local file', thumbnail: '', id: 'os-file-' + filePath, genre: inferGenre(title), addedAt: Date.now(), duration: 0, progress: 0, favorite: false, watchlist: false };
+                const existing = state.playlist.findIndex(entry => entry.id === item.id);
+                if (existing >= 0) { state.playlist[existing] = item; await openLibraryItem(existing); }
+                else { state.playlist.push(item); await openLibraryItem(state.playlist.length - 1); }
+                const player = document.getElementById('player-container');
+                if (player && !document.fullscreenElement && player.requestFullscreen) await player.requestFullscreen().catch(() => {});
+                showToast('Opened from your computer: ' + title);
+            } catch (error) {
+                console.error('Could not open file from Windows:', error);
+                showToast(error.message || 'Could not open that file in HomeFlix.');
+            }
+        };
+
         function releaseLocalUrl(item) {
             if (item && typeof item.url === 'string' && item.url.startsWith('blob:')) URL.revokeObjectURL(item.url);
         }
