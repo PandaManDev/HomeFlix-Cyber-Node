@@ -172,8 +172,8 @@ function startRemoteServer() {
   });
   serverApp.use('/api', (req, res, next) => {
     // Video elements cannot attach Authorization headers, so allow query tokens only on media GETs.
-    const headerToken = String(req.headers.authorization || '').replace(/^Bearer\\s+/i, '');
-    const mediaQueryToken = req.method === 'GET' && /^\\/media\\//.test(req.path) ? String(req.query.token || '') : '';
+    const headerToken = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+    const mediaQueryToken = req.method === 'GET' && /^\/media\//.test(req.path) ? String(req.query.token || '') : '';
     const token = headerToken || mediaQueryToken;
     const expiresAt = token ? tokens.get(token) : null;
     if (!expiresAt || expiresAt < Date.now()) {
