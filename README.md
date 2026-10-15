@@ -79,3 +79,17 @@ HomeFlix Cyber Node's desktop build includes a phone-friendly remote web app ser
 6. Bookmark the remote page or use your mobile browser's **Add to Home Screen** option if available.
 
 The phone remote is served by the installed desktop app, so the computer must be on and HomeFlix must be running. If the page will not load, allow HomeFlix through Windows Firewall on **Private networks** and check that both devices are on the same Wi-Fi. Pairing attempts are rate-limited; session tokens expire after 30 days. Do not expose port 47831 to the public internet or use the remote on an untrusted network. The phone remote controls the desktop player; it does not stream the desktop's video to the phone.
+
+
+## Shared media library (desktop to phone/tablet)
+
+The Electron desktop app now exposes a paired-device library at `http://DESKTOP-IP:47831/library` on the same trusted local network.
+
+1. Start HomeFlix on the desktop and pair the phone using the existing six-digit PIN on the Phone Remote page.
+2. In the phone browser, open the same desktop address with `/library` at the end.
+3. Choose **Choose desktop folders**. A folder picker opens on the desktop; select the folders containing your videos.
+4. Tap **Refresh** on the phone, then choose **Play on this device** on a listed video.
+
+The desktop keeps the folder index in memory and streams files directly over the LAN with HTTP range support. The computer and HomeFlix must remain running. Folder selection is performed on the desktop, and the paired phone can only request items from the indexed list. Clear the app's in-memory shared-folder selection by restarting HomeFlix; do not forward port 47831 to the public internet.
+
+**Format note:** this first shared-library version streams the original file bytes. Whether a video plays on the phone depends on that phone browser's codecs; MKV/HEVC/DTS are not guaranteed to play in mobile browsers. Use H.264/AAC MP4 for broad compatibility. The desktop's existing FFmpeg conversion pipeline remains available for desktop playback; mobile transcoding is not yet implemented.
