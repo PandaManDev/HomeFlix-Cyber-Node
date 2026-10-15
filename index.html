@@ -693,11 +693,34 @@
         // Initialize Web Audio API for 300% Boost & Visualizer
         function resumeAudioEngine() {
             const ctx = state.audioContext;
-            if (ctx && ctx.state === 'suspended') {
-                // Browsers can suspend Web Audio during focus/fullscreen transitions.
+            if (!ctx) return;
+            // Fullscreen/focus transitions can suspend Web Audio without pausing the video.
+            if (ctx.state === 'suspended') {
                 ctx.resume().catch((err) => console.debug('Audio context resume deferred:', err));
             }
         }
+
+        // Keep the Web Audio graph alive across fullscreen changes and recover its
+        // suspended state after the browser finishes changing the presentation mode.
+        function recoverAudioAfterDisplayChange() {
+            resumeAudioEngine();
+            [80, 250, 700].forEach((delay) => {
+                window.setTimeout(() => {
+                    if (!document.hidden) resumeAudioEngine();
+                }, delay);
+            });
+        }
+
+        // A user gesture is the most reliable place for browsers to resume Web Audio.
+        ['pointerdown', 'keydown', 'touchstart'].forEach((eventName) => {
+            window.addEventListener(eventName, resumeAudioEngine, { passive: true });
+        });
+        video.addEventListener('play', resumeAudioEngine);
+        video.addEventListener('playing', resumeAudioEngine);
+        video.addEventListener('volumechange', () => {
+            if (video.muted) return;
+            resumeAudioEngine();
+        });
 
         function initAudioEngine() {
             if (state.audioContext) {
@@ -733,10 +756,8 @@
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden) resumeAudioEngine();
         });
-        document.addEventListener('fullscreenchange', () => {
-            // Defer until the browser finishes its fullscreen layout transition.
-            window.setTimeout(resumeAudioEngine, 80);
-        });
+        document.addEventListener('fullscreenchange', recoverAudioAfterDisplayChange);
+        document.addEventListener('webkitfullscreenchange', recoverAudioAfterDisplayChange);
 
         // File Selector & Drag and Drop Setup
         const fileSelector = document.getElementById('file-selector');
