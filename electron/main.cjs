@@ -15,6 +15,32 @@ protocol.registerSchemesAsPrivileged([{ scheme: 'homeflix-media', privileges: { 
 const transcodedMedia = new Map();
 const activeTranscodes = new Map();
 const remoteStreamSources = new Map();
+const localMediaPaths = new Map();
+const SUPPORTED_MEDIA_EXTENSIONS = new Set(['.mp4','.m4v','.mkv','.webm','.mov','.avi','.mpg','.mpeg','.m2ts','.ts','.ogv','.3gp','.wmv','.flv']);
+let pendingOpenFiles = [];
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+if (!hasSingleInstanceLock) app.quit();
+app.on('second-instance', (_event, argv) => {
+  const files = argv.filter(arg => typeof arg === 'string' && !arg.startsWith('--') && SUPPORTED_MEDIA_EXTENSIONS.has(path.extname(arg).toLowerCase()) && fs.existsSync(arg));
+  if (mainWindow && !mainWindow.isDestroyed()) { if (mainWindow.isMinimized()) mainWindow.restore(); mainWindow.focus(); }
+  if (files.length) queueOpenFiles(files);
+});
+app.on('open-file', (event, filePath) => {
+  event.preventDefault();
+  if (SUPPORTED_MEDIA_EXTENSIONS.has(path.extname(filePath).toLowerCase())) queueOpenFiles([filePath]);
+});
+function queueOpenFiles(files) {
+  const valid = files.filter(file => SUPPORTED_MEDIA_EXTENSIONS.has(path.extname(file).toLowerCase()) && fs.existsSync(file) && fs.statSync(file).isFile());
+  if (!valid.length) return;
+  pendingOpenFiles.push(...valid);
+  if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents.isLoading() === false) flushOpenFiles();
+}
+function flushOpenFiles() {
+  if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isLoading()) return;
+  const files = pendingOpenFiles.splice(0);
+  for (const file of files) mainWindow.webContents.executeJavaScript(`window.homeflixOpenFileFromOS && window.homeflixOpenFileFromOS(${JSON.stringify(file)})`).catch(error => console.warn('Could not open selected media:', error.message));
+}
+
 const sharedMediaFiles = new Map();
 let sharedMediaFolders = [];
 
@@ -420,7 +446,7 @@ function createWindow() {
     const allowed = url.startsWith(WEB_URL) || url.startsWith('file://');
     if (!allowed) { event.preventDefault(); shell.openExternal(url); }
   });
-  mainWindow.webContents.on('did-finish-load', () => { installDiscordPageBridge(); installRemotePairingPanel(); });
+  mainWindow.webContents.on('did-finish-load', () => { installDiscordPageBridge(); installRemotePairingPanel(); flushOpenFiles(); });
   mainWindow.loadURL(WEB_URL);
   mainWindow.webContents.on('did-fail-load', (_event, code, description, validatedURL, isMainFrame) => {
     if (isMainFrame && !validatedURL.startsWith('file://') && code !== -3) {
@@ -431,10 +457,18 @@ function createWindow() {
   mainWindow.on('closed', () => { mainWindow = null; });
 }
 app.whenReady().then(() => {
+  if (!hasSingleInstanceLock) return;
   app.setAppUserModelId(APP_ID);
+  const startupFiles = process.argv.slice(1).filter(arg => typeof arg === 'string' && !arg.startsWith('--') && SUPPORTED_MEDIA_EXTENSIONS.has(path.extname(arg).toLowerCase()) && fs.existsSync(arg));
+  if (startupFiles.length) pendingOpenFiles.push(...startupFiles);
   protocol.handle('homeflix-media', request => {
     const mediaUrl = new URL(request.url);
     const token = mediaUrl.pathname.startsWith('/') ? mediaUrl.pathname.slice(1) : mediaUrl.pathname;
+    if (mediaUrl.hostname === 'local') {
+      const filePath = localMediaPaths.get(token);
+      if (!filePath || !fs.existsSync(filePath)) return new Response('Media not found', { status: 404 });
+      return net.fetch(pathToFileURL(filePath).toString(), { headers: request.headers });
+    }
     if (mediaUrl.hostname === 'converted') {
       const filePath = transcodedMedia.get(token);
       if (!filePath || !fs.existsSync(filePath)) return new Response('Media not found', { status: 404 });
@@ -494,6 +528,13 @@ app.whenReady().then(() => {
     }});
   });
   ipcMain.handle('homeflix:remote-info', () => getRemoteInfo());
+  ipcMain.handle('homeflix:register-open-file', (_event, filePath) => {
+    if (typeof filePath !== 'string' || !path.isAbsolute(filePath) || !fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) throw new Error('The selected media file could not be found.');
+    if (!SUPPORTED_MEDIA_EXTENSIONS.has(path.extname(filePath).toLowerCase())) throw new Error('This file type is not supported by HomeFlix.');
+    const token = crypto.randomBytes(24).toString('hex');
+    localMediaPaths.set(token, filePath);
+    return 'homeflix-media://local/' + token;
+  });
   ipcMain.handle('homeflix:open-local-media', async (_event, filePath) => {
     if (typeof filePath !== 'string' || !path.isAbsolute(filePath)) {
       throw new Error('A valid local media file path is required.');
@@ -568,6 +609,7 @@ app.on('before-quit', () => {
   for (const filePath of transcodedMedia.values()) { try { fs.rmSync(filePath, { force: true }); } catch (_) {} }
   transcodedMedia.clear();
   remoteStreamSources.clear();
+  localMediaPaths.clear();
   if (discordClient) { try { discordClient.destroy(); } catch (_) {} }
   if (remoteServer) remoteServer.close();
 });
