@@ -169,6 +169,11 @@
                 <span class="hidden md:inline">CRT FX</span>
             </button>
 
+            <!-- Android Companion Download (next to fullscreen) -->
+            <a href="https://homeflix-tau.vercel.app/downloads/HomeFlix-Companion.apk" class="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition inline-flex items-center justify-center" title="Download HomeFlix Android Companion" aria-label="Download HomeFlix Android Companion">
+                <i class="fa-brands fa-android" aria-hidden="true"></i>
+            </a>
+
             <!-- Fullscreen Toggle -->
             <button onclick="toggleAppFullscreen()" class="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition" title="Toggle Fullscreen (F)">
                 <i class="fa-solid fa-expand"></i>
@@ -1675,15 +1680,6 @@
     </script>
 
 
-    <!-- HomeFlix Android Companion download button -->
-    <a href="https://github.com/PandaManDev/HomeFlix-Cyber-Node-App/actions/runs/38803528621"
-       target="_blank" rel="noopener noreferrer"
-       aria-label="Download the HomeFlix Android Companion app"
-       title="Download HomeFlix Android Remote"
-       style="position:fixed;right:20px;bottom:88px;z-index:100000;display:inline-flex;align-items:center;gap:10px;padding:14px 18px;border-radius:12px;background:linear-gradient(135deg,#e50914,#991b1b);color:#fff;font-family:Inter,Arial,sans-serif;font-size:14px;font-weight:700;text-decoration:none;border:1px solid rgba(255,255,255,.22);box-shadow:0 8px 28px rgba(229,9,20,.35);">
-       <i class="fa-brands fa-android" aria-hidden="true" style="font-size:19px"></i>
-       <span>Download Android Remote</span>
-    </a>
-
+    <!-- Companion download moved into the top toolbar beside fullscreen. -->
 </body>
 </html>
