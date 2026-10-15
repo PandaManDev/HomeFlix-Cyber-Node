@@ -1,10 +1,9 @@
 {
-  "appId": "com.homeflix.cybernode",
-  "appName": "HomeFlix Cyber Node",
-  "webDir": "www",
+  "appId": "com.homeflix.cybernode.companion",
+  "appName": "HomeFlix Companion",
+  "webDir": "mobile",
   "server": {
-    "url": "https://homeflix-cyber-node.vercel.app",
-    "cleartext": false,
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "cleartext": true
   }
 }
