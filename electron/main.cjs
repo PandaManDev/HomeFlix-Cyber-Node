@@ -50,6 +50,19 @@ function getRemoteInfo() {
 
 function startRemoteServer() {
   const serverApp = express();
+  serverApp.use((req, res, next) => {
+    const origin = String(req.headers.origin || '');
+    if (origin === 'https://localhost' || origin === 'capacitor://localhost') {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Vary', 'Origin');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+      res.setHeader('Access-Control-Allow-Private-Network', 'true');
+      res.setHeader('Access-Control-Max-Age', '600');
+    }
+    if (req.method === 'OPTIONS') return res.sendStatus(204);
+    next();
+  });
   serverApp.use(express.json({ limit: '32kb' }));
   const allowedDiscordOrigins = new Set(['https://homeflix-cyber-node.vercel.app', 'http://localhost:3000', 'http://127.0.0.1:3000']);
   serverApp.options('/api/discord-presence/:mode?', (req, res) => {
@@ -132,7 +145,10 @@ function startRemoteServer() {
     res.json({ token, status: remoteStatus });
   });
   serverApp.use('/api', (req, res, next) => {
-    const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+    // Video elements cannot attach Authorization headers, so allow query tokens only on media GETs.
+    const headerToken = String(req.headers.authorization || '').replace(/^Bearer\\s+/i, '');
+    const mediaQueryToken = req.method === 'GET' && /^\\/media\\//.test(req.path) ? String(req.query.token || '') : '';
+    const token = headerToken || mediaQueryToken;
     const expiresAt = token ? tokens.get(token) : null;
     if (!expiresAt || expiresAt < Date.now()) {
       if (token) tokens.delete(token);
