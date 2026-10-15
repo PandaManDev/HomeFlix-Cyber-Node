@@ -1,0 +1,43 @@
+name: Build HomeFlix Android Companion
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'mobile/**'
+      - 'capacitor.config.json'
+      - 'package.json'
+      - '.github/workflows/android-companion.yml'
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npx cap add android
+      - name: Enable local network HTTP requests for desktop pairing
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('android/app/src/main/AndroidManifest.xml')
+          s = p.read_text()
+          s = s.replace('<application', '<application android:usesCleartextTraffic="true"', 1)
+          p.write_text(s)
+          p = Path('android/app/src/main/java/com/homeflix/cybernode/companion/MainActivity.java')
+          if p.exists():
+              s = p.read_text()
+              s = s.replace('super.onCreate(savedInstanceState);', 'super.onCreate(savedInstanceState);\n        getBridge().getWebView().getSettings().setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);')
+              p.write_text(s)
+          PY
+      - run: npx cap sync android
+      - name: Build debug APK
+        run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HomeFlix-Companion-Android-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
