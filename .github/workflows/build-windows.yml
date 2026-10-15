@@ -11,48 +11,93 @@ on:
       - "tools/**"
       - "build/**"
       - "package.json"
-      - "package-lock.json"
+      - "supabase-config.js"
       - ".github/workflows/build-windows.yml"
 
 permissions:
   contents: write
 
+concurrency:
+  group: homeflix-windows-build-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-windows:
+    name: Build Windows setup and uninstaller
     runs-on: windows-latest
+    timeout-minutes: 45
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      - name: Read app version
+        id: meta
+        shell: pwsh
+        run: |
+          $package = Get-Content package.json -Raw | ConvertFrom-Json
+          "version=$($package.version)" >> $env:GITHUB_OUTPUT
+          "Building HomeFlix Cyber Node version $($package.version)"
+
       - name: Install dependencies
-        run: npm install
+        run: npm install --no-audit --no-fund
+
       - name: Build Windows NSIS installer
         run: npm run dist
+
       - name: Build standalone uninstaller executable
         shell: pwsh
         run: dotnet publish tools/HomeFlixUninstaller/HomeFlixUninstaller.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o release/uninstaller
+
       - name: Stage uninstaller executable
         shell: pwsh
-        run: Copy-Item release/uninstaller/HomeFlix-Uninstaller.exe release/HomeFlix-Uninstaller.exe
-      - name: Upload installer and uninstaller as workflow artifacts
+        run: |
+          $source = "release/uninstaller/HomeFlix-Uninstaller.exe"
+          if (!(Test-Path $source)) {
+            throw "Uninstaller build did not produce $source"
+          }
+          Copy-Item $source "release/HomeFlix-Uninstaller.exe" -Force
+
+      - name: Verify installer outputs
+        shell: pwsh
+        run: |
+          $installer = "release/HomeFlix-Cyber-Node-Setup-${{ steps.meta.outputs.version }}.exe"
+          if (!(Test-Path $installer)) {
+            Get-ChildItem release -Recurse | Format-Table FullName, Length
+            throw "Expected installer not found: $installer"
+          }
+          if (!(Test-Path "release/HomeFlix-Uninstaller.exe")) {
+            throw "Expected standalone uninstaller was not found."
+          }
+          Get-ChildItem release -Filter "*.exe" | Format-Table Name, Length
+
+      - name: Upload installer downloads
         uses: actions/upload-artifact@v4
         with:
           name: HomeFlix-Cyber-Node-Windows-Installers
-          path: release/*.exe
+          path: |
+            release/HomeFlix-Cyber-Node-Setup-${{ steps.meta.outputs.version }}.exe
+            release/HomeFlix-Uninstaller.exe
           if-no-files-found: error
-          retention-days: 14
-      - name: Publish installer and uninstaller downloads
+          retention-days: 30
+
+      - name: Publish versioned GitHub release downloads
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v4.8.0
-          name: HomeFlix Cyber Node v4.8.0
+          tag_name: v${{ steps.meta.outputs.version }}-build.${{ github.run_number }}
+          name: HomeFlix Cyber Node v${{ steps.meta.outputs.version }} (Build ${{ github.run_number }})
+          body: |
+            Automated Windows installer build from the main branch.
+
+            - HomeFlix Cyber Node setup installer
+            - Standalone HomeFlix uninstaller
           files: |
-            release/HomeFlix-Cyber-Node-Setup-4.8.0.exe
+            release/HomeFlix-Cyber-Node-Setup-${{ steps.meta.outputs.version }}.exe
             release/HomeFlix-Uninstaller.exe
-          overwrite_files: true
           make_latest: true
           fail_on_unmatched_files: true
         env:
