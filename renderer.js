@@ -1217,13 +1217,8 @@ const LIBRARY_STORAGE_KEY = 'homeflix-library-v1';
       if (!db.active || !db.profiles.includes(db.active)) db.active=db.profiles[0];
       if (!db.data || typeof db.data!=='object') db.data={};
       if (!db.accent) db.accent='#06b6d4';
-      let accountClient = null, accountSession = null, cloudSaveTimer = null, cloudSyncBusy = false;
-      const cloudConfigured = () => { const c=window.HOMEFLIX_SUPABASE||{}; return !!(c.url&&c.anonKey&&!/YOUR_|SUPABASE_URL_HERE|SUPABASE_ANON_KEY_HERE/i.test(c.url+' '+c.anonKey)&&window.supabase?.createClient); };
-      if(cloudConfigured()){try{accountClient=window.supabase.createClient(window.HOMEFLIX_SUPABASE.url,window.HOMEFLIX_SUPABASE.anonKey);}catch(e){console.warn('HomeFlix account client setup failed',e);}}
-      const accountMessage = (message, error=false) => { const n=$('hf-account-status'); if(n){n.textContent=message;n.style.color=error?'#fca5a5':'#a3a3a3';} };
-      const paintAccount = () => { const state=$('hf-account-state'), signIn=$('hf-account-signin'), signUp=$('hf-account-signup'), signOut=$('hf-account-signout'); if(!state)return; if(!accountClient){state.textContent='Account setup required: connect a Supabase project to enable sign-in and cloud sync.';signIn.disabled=false;signUp.disabled=false;signOut.hidden=true;return;} if(accountSession?.user){state.textContent='Signed in as '+accountSession.user.email+' · cloud sync enabled.';signIn.hidden=true;signUp.hidden=true;signOut.hidden=false;}else{state.textContent='Not signed in · your library data stays on this device.';signIn.hidden=false;signUp.hidden=false;signOut.hidden=true;} };
-      const persist = () => { try { localStorage.setItem(KEY,JSON.stringify(db)); } catch(e) { toast('Storage is full; export a backup or clear browser storage.'); } if(accountClient&&accountSession?.user&&!cloudSyncBusy){clearTimeout(cloudSaveTimer);cloudSaveTimer=setTimeout(async()=>{try{const {error}=await accountClient.from('homeflix_user_data').upsert({user_id:accountSession.user.id,data:db,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error)throw error;}catch(e){console.warn('HomeFlix cloud sync failed',e);accountMessage('Cloud sync failed: '+(e.message||'check your Supabase table and policies'),true);}},900);} };
-      const profileData = () => { if(!db.data[db.active]) db.data[db.active]={favorites:[],progress:{},watched:[]}; const p=db.data[db.active]; p.favorites ||= []; p.progress ||= {}; p.watched ||= []; return p; };
+      const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch(e) { toast('Storage is full; export a backup or clear browser storage.'); } };
+            const profileData = () => { if(!db.data[db.active]) db.data[db.active]={favorites:[],progress:{},watched:[]}; const p=db.data[db.active]; p.favorites ||= []; p.progress ||= {}; p.watched ||= []; return p; };
       const video = document.querySelector('video');
       const titleNode = $('current-title') || $('video-title') || $('now-playing-title');
       const currentTitle = () => {
@@ -1235,37 +1230,7 @@ const LIBRARY_STORAGE_KEY = 'homeflix-library-v1';
       const getKey = () => currentTitle().toLowerCase();
       const toast = msg => { if(typeof window.showToast==='function') window.showToast(msg); else { const old=$('hf-upgrade-toast'); if(old)old.remove(); const n=document.createElement('div');n.id='hf-upgrade-toast';n.textContent=msg;n.style.cssText='position:fixed;z-index:99999;bottom:75px;right:18px;padding:12px 16px;border:1px solid #22d3ee;border-radius:10px;background:#0b1220;color:white;font:13px Inter,sans-serif;box-shadow:0 8px 30px #0008';document.body.append(n);setTimeout(()=>n.remove(),2600); } };
       const fmt = n => { n=Math.max(0,Math.floor(Number(n)||0)); return Math.floor(n/60)+':'+String(n%60).padStart(2,'0'); };
-      async function hydrateAccountData(user){
-        if(!accountClient||!user)return;
-        cloudSyncBusy=true;
-        try{
-          const {data,error}=await accountClient.from('homeflix_user_data').select('data').eq('user_id',user.id).maybeSingle();
-          if(error)throw error;
-          if(data?.data&&typeof data.data==='object'&&Array.isArray(data.data.profiles)&&data.data.data&&typeof data.data.data==='object'){
-            db={...db,...data.data};
-            if(!db.profiles.length)db.profiles=['Main'];
-            if(!db.active||!db.profiles.includes(db.active))db.active=db.profiles[0];
-            persist();
-            accountMessage('Your HomeFlix profiles and viewing data are synced.');
-          }else{
-            const {error:saveError}=await accountClient.from('homeflix_user_data').upsert({user_id:user.id,data:db,updated_at:new Date().toISOString()},{onConflict:'user_id'});
-            if(saveError)throw saveError;
-            accountMessage('Account connected. This device’s profiles were saved to your account.');
-          }
-          render();
-        }catch(e){console.error('HomeFlix account data load failed',e);accountMessage('Could not sync account data: '+(e.message||'check Supabase setup'),true);}
-        finally{cloudSyncBusy=false;paintAccount();}
-      }
-      if(accountClient){
-        accountClient.auth.getSession().then(({data,error})=>{if(error)throw error;accountSession=data.session;paintAccount();if(accountSession)hydrateAccountData(accountSession.user);}).catch(e=>accountMessage('Account session error: '+e.message,true));
-        accountClient.auth.onAuthStateChange((event,session)=>{accountSession=session;paintAccount();if(event==='SIGNED_IN'&&session?.user)hydrateAccountData(session.user);});
-      }
-      $('hf-account-signin').addEventListener('click',async()=>{if(!accountClient)return paintAccount();const email=$('hf-account-email').value.trim(),password=$('hf-account-password').value;if(!email||!password)return accountMessage('Enter your email and password.',true);const b=$('hf-account-signin');b.disabled=true;try{const {error}=await accountClient.auth.signInWithPassword({email,password});if(error)throw error;accountMessage('Signed in. Loading your synced data…');}catch(e){accountMessage(e.message||'Sign-in failed.',true);}finally{b.disabled=false;}});
-      $('hf-account-signup').addEventListener('click',async()=>{if(!accountClient)return paintAccount();const email=$('hf-account-email').value.trim(),password=$('hf-account-password').value;if(!email||!password)return accountMessage('Enter your email and password.',true);if(password.length<8)return accountMessage('Use a password with at least 8 characters.',true);const b=$('hf-account-signup');b.disabled=true;try{const {data,error}=await accountClient.auth.signUp({email,password});if(error)throw error;if(data.session)accountMessage('Account created. Signing you in…');else accountMessage('Account created. Check your email to confirm it, then sign in.');}catch(e){accountMessage(e.message||'Account creation failed.',true);}finally{b.disabled=false;}});
-      $('hf-account-signout').addEventListener('click',async()=>{if(!accountClient)return;try{const {error}=await accountClient.auth.signOut();if(error)throw error;accountSession=null;paintAccount();accountMessage('Signed out. This device’s local data is still available.');}catch(e){accountMessage(e.message||'Sign-out failed.',true);}});
-      paintAccount();
-      function render(){
-        $('hf-profile').innerHTML=''; db.profiles.forEach(name=>{const o=document.createElement('option');o.value=name;o.textContent=name;$('hf-profile').append(o)});$('hf-profile').value=db.active;
+      $('hf-profile').innerHTML=''; db.profiles.forEach(name=>{const o=document.createElement('option');o.value=name;o.textContent=name;$('hf-profile').append(o)});$('hf-profile').value=db.active;
         const p=profileData(), title=currentTitle(), key=getKey();
         $('hf-current-title').textContent=title;
         $('hf-current-meta').textContent=video&&Number.isFinite(video.duration)&&video.duration>0?fmt(video.currentTime)+' / '+fmt(video.duration):'Playback details appear when media is loaded.';
