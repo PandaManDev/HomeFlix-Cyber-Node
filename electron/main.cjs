@@ -10,6 +10,18 @@ const DiscordRPC = require('discord-rpc');
 
 const DISCORD_CLIENT_ID = '1559626336795107379';
 
+// Hardware acceleration is an Electron/Chromium startup option. Persist it separately
+// from the web library and apply changes on the next app launch.
+const hardwareSettingsPath = path.join(app.getPath('userData'), 'app-settings.json');
+function readHardwareAccelerationSetting() {
+  try {
+    const saved = JSON.parse(fs.readFileSync(hardwareSettingsPath, 'utf8'));
+    return saved.hardwareAcceleration !== false;
+  } catch { return true; }
+}
+let hardwareAccelerationEnabled = readHardwareAccelerationSetting();
+if (!hardwareAccelerationEnabled) app.disableHardwareAcceleration();
+
 // A privileged streaming scheme lets Chromium play converted files without exposing arbitrary disk paths.
 protocol.registerSchemesAsPrivileged([{ scheme: 'homeflix-media', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }]);
 const transcodedMedia = new Map();
@@ -528,6 +540,14 @@ app.whenReady().then(() => {
     }});
   });
   ipcMain.handle('homeflix:remote-info', () => getRemoteInfo());
+  ipcMain.handle('homeflix:get-hardware-acceleration', () => ({ enabled: hardwareAccelerationEnabled }));
+  ipcMain.handle('homeflix:set-hardware-acceleration', (_event, enabled) => {
+    if (typeof enabled !== 'boolean') throw new Error('Hardware acceleration setting must be on or off.');
+    hardwareAccelerationEnabled = enabled;
+    fs.mkdirSync(path.dirname(hardwareSettingsPath), { recursive: true });
+    fs.writeFileSync(hardwareSettingsPath, JSON.stringify({ hardwareAcceleration: enabled }, null, 2), 'utf8');
+    return { enabled, restartRequired: true };
+  });
   ipcMain.handle('homeflix:register-open-file', (_event, filePath) => {
     if (typeof filePath !== 'string' || !path.isAbsolute(filePath) || !fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) throw new Error('The selected media file could not be found.');
     if (!SUPPORTED_MEDIA_EXTENSIONS.has(path.extname(filePath).toLowerCase())) throw new Error('This file type is not supported by HomeFlix.');
