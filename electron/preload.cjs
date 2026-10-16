@@ -2,6 +2,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('homeflixDesktop', Object.freeze({
   isDesktop: true,
+  getHardwareAcceleration: () => ipcRenderer.invoke('homeflix:get-hardware-acceleration'),
+  setHardwareAcceleration: enabled => ipcRenderer.invoke('homeflix:set-hardware-acceleration', enabled),
   getRemoteInfo: () => ipcRenderer.invoke('homeflix:remote-info'),
   openLocalMedia: filePath => ipcRenderer.invoke('homeflix:open-local-media', filePath),
   registerOpenFile: filePath => ipcRenderer.invoke('homeflix:register-open-file', filePath),
