@@ -543,7 +543,8 @@ const LIBRARY_STORAGE_KEY = 'homeflix-library-v1';
                 if (!desktop || typeof desktop.registerOpenFile !== 'function') return;
                 const playableUrl = await desktop.registerOpenFile(filePath);
                 const title = String(filePath).split(/[\\/]/).pop() || 'Local video';
-                const item = { title, url: playableUrl, type: 'local', localPath: filePath, size: 'Local file', thumbnail: '', id: 'os-file-' + filePath, genre: inferGenre(title), addedAt: Date.now(), duration: 0, progress: 0, favorite: false, watchlist: false };
+                const isImage = /\.(png|jpe?g|gif|webp|bmp|avif|svg)$/i.test(title);
+                const item = { title, url: playableUrl, type: isImage ? 'image' : 'local', localPath: filePath, size: 'Local file', thumbnail: isImage ? playableUrl : '', id: 'os-file-' + filePath, genre: isImage ? 'Photos' : inferGenre(title), addedAt: Date.now(), duration: 0, progress: 0, favorite: false, watchlist: false };
                 const existing = state.playlist.findIndex(entry => entry.id === item.id);
                 if (existing >= 0) { state.playlist[existing] = item; await openLibraryItem(existing); }
                 else { state.playlist.push(item); await openLibraryItem(state.playlist.length - 1); }
