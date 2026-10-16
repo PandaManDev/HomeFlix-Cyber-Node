@@ -551,7 +551,6 @@
           </a>
         </div>
         <div class="hf-grid">
-          <section class="hf-card" id="hf-account-card"><h3>Account & Cloud Sync</h3><div id="hf-account-state" class="hf-muted" style="margin-bottom:10px">Not signed in · your library data stays on this device.</div><label class="hf-muted" for="hf-account-email">Email</label><input id="hf-account-email" class="hf-field" type="email" autocomplete="email" placeholder="you@example.com"><label class="hf-muted" for="hf-account-password">Password</label><input id="hf-account-password" class="hf-field" type="password" autocomplete="current-password" minlength="8" placeholder="At least 8 characters"><div style="display:flex;gap:7px;flex-wrap:wrap"><button id="hf-account-signin" class="hf-btn primary">Sign in</button><button id="hf-account-signup" class="hf-btn">Create account</button><button id="hf-account-signout" class="hf-btn" hidden>Sign out</button></div><div id="hf-account-status" class="hf-muted" role="status" style="margin-top:10px"></div><p class="hf-muted" style="margin-top:9px">Sign in on another device to sync profiles, favorites, and watch progress. Requires the HomeFlix Supabase project configuration.</p></section>
           <section class="hf-card"><h3>Profiles</h3><label class="hf-muted" for="hf-profile">Active viewing profile</label><select id="hf-profile" class="hf-field"></select><div style="display:flex;gap:7px"><input id="hf-new-profile" class="hf-field" style="margin:0;flex:1" maxlength="32" placeholder="New profile name"><button id="hf-add-profile" class="hf-btn primary">Add</button></div><p class="hf-muted">Profiles keep favorites and watch progress separate on this browser/device.</p></section>
           <section class="hf-card"><h3>Now Playing</h3><div id="hf-current-title" style="font-size:16px;font-weight:750;overflow-wrap:anywhere">Nothing selected yet</div><div id="hf-current-meta" class="hf-muted" style="margin:7px 0 12px">Load a local file or stream URL in the player.</div><div style="display:flex;flex-wrap:wrap;gap:7px"><button id="hf-favorite-current" class="hf-btn">☆ Add favorite</button><button id="hf-mark-watched" class="hf-btn">✓ Mark watched</button></div></section>
           <section class="hf-card"><h3>Continue Watching</h3><div id="hf-progress-list" class="hf-list"></div><p class="hf-muted" style="margin-top:9px">Progress is saved locally as you watch. Browser streaming depends on the source's supported format and access permissions.</p></section>
@@ -562,8 +561,6 @@
         </div>
       </section>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="./supabase-config.js"></script>
     <script src="./renderer.js"></script>
     
 
