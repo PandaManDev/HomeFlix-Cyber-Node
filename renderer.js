@@ -849,7 +849,13 @@ const LIBRARY_STORAGE_KEY = 'homeflix-library-v1';
                 return;
             }
             if (video.paused) {
-                video.play();
+                const playAttempt = video.play();
+                if (playAttempt && typeof playAttempt.catch === 'function') {
+                    playAttempt.catch(error => {
+                        console.warn('HomeFlix could not start playback:', error);
+                        showToast('Playback could not start. Check the file format or try another video.');
+                    });
+                }
                 showCenterAnim('play');
             } else {
                 video.pause();
@@ -963,22 +969,36 @@ const LIBRARY_STORAGE_KEY = 'homeflix-library-v1';
             return playback;
         }
 
-        function toggleFullscreen() {
+        async function toggleFullscreen() {
             const container = document.getElementById('player-container');
-            if (!document.fullscreenElement) {
-                container.requestFullscreen().catch(err => {
-                    console.warn('Fullscreen error:', err);
-                });
-            } else {
-                document.exitFullscreen();
+            if (!container) {
+                showToast('The player is not available yet.');
+                return;
+            }
+            try {
+                if (!document.fullscreenElement) {
+                    if (typeof container.requestFullscreen !== 'function') throw new Error('Fullscreen is not supported in this window.');
+                    await container.requestFullscreen();
+                } else if (document.exitFullscreen) {
+                    await document.exitFullscreen();
+                }
+            } catch (err) {
+                console.warn('Fullscreen error:', err);
+                showToast('Fullscreen could not be changed. Try again after clicking the player.');
             }
         }
 
-        function toggleAppFullscreen() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen();
-            } else {
-                document.exitFullscreen();
+        async function toggleAppFullscreen() {
+            try {
+                if (!document.fullscreenElement) {
+                    if (typeof document.documentElement.requestFullscreen !== 'function') throw new Error('Fullscreen is not supported in this window.');
+                    await document.documentElement.requestFullscreen();
+                } else if (document.exitFullscreen) {
+                    await document.exitFullscreen();
+                }
+            } catch (err) {
+                console.warn('App fullscreen error:', err);
+                showToast('App fullscreen could not be changed. Try again.');
             }
         }
 
