@@ -1,9 +1,0 @@
-{
-  "appId": "com.homeflix.cybernode.companion",
-  "appName": "HomeFlix Companion",
-  "webDir": "mobile",
-  "server": {
-    "androidScheme": "https",
-    "cleartext": true
-  }
-}
