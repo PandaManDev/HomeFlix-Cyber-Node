@@ -197,6 +197,7 @@
                 <div class="mt-6 flex flex-col lg:flex-row gap-3">
                     <div class="relative flex-1 min-w-0"><i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500"></i><input id="library-search" type="search" placeholder="Search your library..." class="w-full rounded-xl bg-black/50 border border-white/15 py-3 pl-11 pr-4 text-sm text-white placeholder-zinc-500 outline-none focus:border-red-600"></div>
                     <select id="library-genre" class="rounded-xl bg-[#202020] border border-white/15 px-4 py-3 text-sm text-white outline-none focus:border-red-600"><option value="all">All genres</option><option>Action</option><option>Comedy</option><option>Drama</option><option>Horror</option><option>Sci-Fi</option><option>Documentary</option><option>Animation</option><option>Other</option></select>
+                    <select id="library-sort" aria-label="Sort library" class="rounded-xl bg-[#202020] border border-white/15 px-4 py-3 text-sm text-white outline-none focus:border-red-600"><option value="recent">Recently added</option><option value="title">Title A–Z</option><option value="title-desc">Title Z–A</option><option value="duration">Longest first</option><option value="progress">Most watched progress</option></select>
                     <div class="flex rounded-xl bg-black/40 border border-white/10 p-1">
                         <button id="grid-view-btn" onclick="setLibraryView('grid')" class="px-3 py-2 rounded-lg text-sm bg-red-600 text-white" title="Grid view"><i class="fa-solid fa-grip"></i></button>
                         <button id="list-view-btn" onclick="setLibraryView('list')" class="px-3 py-2 rounded-lg text-sm text-zinc-400 hover:text-white" title="List view"><i class="fa-solid fa-list"></i></button>
@@ -626,14 +627,23 @@
             const matches=state.playlist.map((item,index)=>({item,index})).filter(({item})=>{
                 const text=(item.title+' '+(item.genre||'')+' '+(item.type||'')).toLowerCase();
                 return (!query || text.includes(query)) && (state.libraryGenre==='all' || (item.genre||inferGenre(item.title))===state.libraryGenre) && (state.libraryFilter==='all' || (state.libraryFilter==='favorites'?item.favorite:item.watchlist));
-            }).sort((a,b)=>(b.item.addedAt||0)-(a.item.addedAt||0));
+            });
+            const sortMode=document.getElementById('library-sort')?.value||'recent';
+            matches.sort((a,b)=>{
+                if(sortMode==='title')return a.item.title.localeCompare(b.item.title,undefined,{sensitivity:'base'});
+                if(sortMode==='title-desc')return b.item.title.localeCompare(a.item.title,undefined,{sensitivity:'base'});
+                if(sortMode==='duration')return (Number(b.item.duration)||0)-(Number(a.item.duration)||0);
+                if(sortMode==='progress')return ((Number(b.item.progress)||0)/(Number(b.item.duration)||1))-((Number(a.item.progress)||0)/(Number(a.item.duration)||1));
+                return (b.item.addedAt||0)-(a.item.addedAt||0);
+            });
             const recent=matches;
             const grid=document.getElementById('library-grid');
             grid.classList.toggle('list-mode',state.libraryView==='list');
             grid.className=(state.libraryView==='list'?'list-mode flex flex-col gap-3':'grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4');
             grid.innerHTML=recent.map(({item,index})=>libraryCard(item,index)).join('');
             document.getElementById('library-results-title').textContent=state.libraryFilter==='favorites'?'Favorites':state.libraryFilter==='watchlist'?'My List':'Recently Added';
-            document.getElementById('library-results-meta').textContent=matches.length+' video'+(matches.length===1?'':'s')+' · sorted by recently added';
+            const sortLabels={recent:'recently added',title:'title A–Z','title-desc':'title Z–A',duration:'longest first',progress:'watch progress'};
+            document.getElementById('library-results-meta').textContent=matches.length+' video'+(matches.length===1?'':'s')+' · sorted by '+(sortLabels[sortMode]||sortLabels.recent);
             document.getElementById('library-empty').classList.toggle('hidden',matches.length>0);
             const continuing=state.playlist.map((item,index)=>({item,index})).filter(x=>x.item.progress>0 && x.item.duration && x.item.progress<x.item.duration-20).sort((a,b)=>(b.item.progress/b.item.duration)-(a.item.progress/a.item.duration)).slice(0,5);
             const section=document.getElementById('continue-section');
@@ -1557,6 +1567,7 @@
         document.getElementById('library-folder-selector').addEventListener('change', e => { handleFiles(e.target.files); e.target.value=''; });
         document.getElementById('library-search').addEventListener('input', e => { state.librarySearch=e.target.value.toLowerCase().trim(); renderLibrary(); });
         document.getElementById('library-genre').addEventListener('change', e => { state.libraryGenre=e.target.value; renderLibrary(); });
+        document.getElementById('library-sort').addEventListener('change', () => renderLibrary());
         document.getElementById('library-theme').value = state.libraryTheme;
         applyLibraryTheme(state.libraryTheme);
         renderLibrary();
