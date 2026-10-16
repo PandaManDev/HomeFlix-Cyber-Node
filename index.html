@@ -339,6 +339,8 @@
                                 <input type="file" id="sub-selector" class="hidden" accept=".vtt,.srt">
                             </label>
 
+                            <label class="flex items-center gap-1.5 bg-slate-900/90 border border-slate-700 rounded px-2 py-1 text-xs font-mono text-slate-300" title="Subtitle text size">CC <select id="subtitle-size-select" aria-label="Subtitle size" onchange="setSubtitleSize(this.value)" class="bg-transparent text-cyan-300 outline-none"><option value="small">S</option><option value="medium" selected>M</option><option value="large">L</option><option value="xlarge">XL</option></select></label>
+
                             <!-- Fullscreen -->
                             <button onclick="toggleFullscreen()" class="text-slate-400 hover:text-white transition text-sm" title="Fullscreen (F)">
                                 <i class="fa-solid fa-expand"></i>
@@ -1406,6 +1408,8 @@
             showToast('Subtitle size: ' + selected);
         }
         try { setSubtitleSize(localStorage.getItem('homeflix.subtitleSize') || 'medium'); } catch { setSubtitleSize('medium'); }
+        const subtitleSizeSelect = document.getElementById('subtitle-size-select');
+        try { if (subtitleSizeSelect) subtitleSizeSelect.value = localStorage.getItem('homeflix.subtitleSize') || 'medium'; } catch {}
 
         function toggleLoop() {
             state.isLooping = !state.isLooping;
