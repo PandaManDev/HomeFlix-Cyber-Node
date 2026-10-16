@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - "index.html"
+      - "renderer.js"
       - "electron/**"
       - "scripts/**"
       - "tools/**"
