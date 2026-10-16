@@ -192,6 +192,7 @@
                         <label class="cursor-pointer px-4 py-2.5 rounded-lg bg-[#e50914] hover:bg-red-700 text-white font-semibold text-sm transition"><i class="fa-solid fa-plus mr-2"></i>Add videos<input id="library-file-selector" type="file" class="hidden" multiple accept="video/*,.mkv,.m4v,.avi,.mov,.mpg,.mpeg,.ts,.m2ts,.ogv,.3gp,.wmv,.flv"></label>
                         <label class="cursor-pointer px-4 py-2.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white font-semibold text-sm transition"><i class="fa-solid fa-folder-open mr-2"></i>Scan folder<input id="library-folder-selector" type="file" class="hidden" webkitdirectory directory multiple accept="video/*,.mkv,.m4v,.avi,.mov,.mpg,.mpeg,.ts,.m2ts,.ogv,.3gp,.wmv,.flv"></label>
                         <button onclick="openLibrarySettings()" class="px-4 py-2.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white text-sm transition" title="Themes and remote"><i class="fa-solid fa-sliders mr-2"></i>Settings</button>
+                        <button id="library-export-list" type="button" class="px-4 py-2.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white text-sm transition" title="Export a list of your library"><i class="fa-solid fa-file-arrow-down mr-2"></i>Export library</button>
                     </div>
                 </div>
                 <div class="mt-6 flex flex-col lg:flex-row gap-3">
@@ -1585,6 +1586,20 @@
         document.getElementById('library-search').addEventListener('input', e => { state.librarySearch=e.target.value.toLowerCase().trim(); renderLibrary(); });
         document.getElementById('library-genre').addEventListener('change', e => { state.libraryGenre=e.target.value; renderLibrary(); });
         document.getElementById('library-sort').addEventListener('change', () => renderLibrary());
+        document.getElementById('library-export-list').addEventListener('click', () => {
+            const exportItems=state.playlist.map(item=>({
+                title:item.title, genre:item.genre||inferGenre(item.title), type:item.type||'local',
+                duration:Number(item.duration)||0, progress:Number(item.progress)||0,
+                favorite:!!item.favorite, watchlist:!!item.watchlist, addedAt:item.addedAt||null
+            }));
+            const payload={app:'HomeFlix Cyber Node',version:1,exportedAt:new Date().toISOString(),items:exportItems};
+            const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+            const url=URL.createObjectURL(blob);
+            const link=document.createElement('a');
+            link.href=url;link.download='homeflix-library-'+new Date().toISOString().slice(0,10)+'.json';
+            document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+            showToast('Library list exported. Video files are not included.');
+        });
         document.getElementById('library-theme').value = state.libraryTheme;
         applyLibraryTheme(state.libraryTheme);
         renderLibrary();
