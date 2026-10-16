@@ -4,6 +4,7 @@
 
 !include "LogicLib.nsh"
 !include "nsDialogs.nsh"
+!include "FileFunc.nsh"
 
 !define MUI_BGCOLOR "080D18"
 !define MUI_TEXTCOLOR "F2F5FF"
@@ -31,12 +32,12 @@ Function HomeFlixDiskPageCreate
 
   ${NSD_CreateLabel} 0 0 100% 22u "HOMEFLIX CYBER NODE  /  STORAGE CHECK"
   Pop $0
-  ${NSD_CreateLabel} 0 26u 100% 30u "One quick check before setup. Review the install folder and free space on its drive."
+  ${NSD_CreateLabel} 0 26u 100% 30u "Review the destination and the actual free space reported by Windows before installing."
   Pop $0
 
-  ${NSD_CreateLabel} 0 66u 100% 18u "RECOMMENDED APP SPACE"
+  ${NSD_CreateLabel} 0 66u 100% 18u "REQUIRED FREE SPACE"
   Pop $0
-  ${NSD_CreateLabel} 0 86u 100% 28u "1 GB minimum free-space requirement for the application. Movies and shows need extra storage."
+  ${NSD_CreateLabel} 0 86u 100% 28u "At least 1 GB free on the selected drive. Your movies and shows need additional storage."
   Pop $0
 
   ${NSD_CreateLabel} 0 124u 100% 18u "INSTALL LOCATION"
@@ -44,7 +45,7 @@ Function HomeFlixDiskPageCreate
   ${NSD_CreateLabel} 0 144u 100% 34u "$INSTDIR"
   Pop $HF_LocationInfo
 
-  ${NSD_CreateLabel} 0 184u 100% 38u "Reading available space..."
+  ${NSD_CreateLabel} 0 184u 100% 38u "Checking free space..."
   Pop $HF_FreeInfo
 
   Call HomeFlixRefreshDiskInfo
@@ -54,27 +55,27 @@ FunctionEnd
 Function HomeFlixRefreshDiskInfo
   StrCpy $HF_DiskCheckOK "0"
   StrCpy $HF_AvailableMB "Unknown"
-  ; GetDiskFreeSpaceEx returns 64-bit byte counts. The first output is the
-  ; caller-available free bytes; convert to MB before comparing with 1024 MB (1 GB).
-  System::Call 'kernel32::GetDiskFreeSpaceEx(t "$INSTDIR", *l .r1, *l .r2, *l .r3) i .r0'
-  ${If} $0 != 0
-    System::Int64Op $1 / 1048576
-    Pop $HF_AvailableMB
+
+  ; Use NSIS FileFunc DriveSpace instead of passing 64-bit byte counts through
+  ; 32-bit System plugin output pointers. /S=M requests MB, avoiding overflow.
+  ${DriveSpace} "$INSTDIR" "/D=F /S=M" $HF_AvailableMB $0
+  ${If} $HF_AvailableMB != ""
+  ${AndIf} $HF_AvailableMB != "error"
     ${If} $HF_AvailableMB >= ${HOMEFLIX_REQUIRED_MB}
       StrCpy $HF_DiskCheckOK "1"
-      SendMessage $HF_FreeInfo ${WM_SETTEXT} 0 "STR:AVAILABLE SPACE: $HF_AvailableMB MB — enough for the 1 GB requirement."
+      SendMessage $HF_FreeInfo ${WM_SETTEXT} 0 "STR:AVAILABLE SPACE: $HF_AvailableMB MB — meets the 1 GB minimum."
     ${Else}
-      SendMessage $HF_FreeInfo ${WM_SETTEXT} 0 "STR:LOW SPACE WARNING: $HF_AvailableMB MB available; 1 GB is required."
+      SendMessage $HF_FreeInfo ${WM_SETTEXT} 0 "STR:LOW SPACE WARNING: $HF_AvailableMB MB available; 1024 MB is required."
     ${EndIf}
   ${Else}
-    SendMessage $HF_FreeInfo ${WM_SETTEXT} 0 "STR:Free space could not be read. Check the drive before continuing."
+    SendMessage $HF_FreeInfo ${WM_SETTEXT} 0 "STR:Windows could not report free space for this location. Choose a valid local drive and try again."
   ${EndIf}
 FunctionEnd
 
 Function HomeFlixDiskPageLeave
   Call HomeFlixRefreshDiskInfo
   ${If} $HF_DiskCheckOK != "1"
-    MessageBox MB_ICONSTOP "HomeFlix setup requires at least 1 GB of available space on the selected drive. Choose another drive or free up space before continuing."
+    MessageBox MB_ICONSTOP "HomeFlix setup needs at least 1 GB of free space on the selected drive. This check uses Windows' reported free space, not the drive's total capacity. Choose another drive or free up space, then continue."
     Abort
   ${EndIf}
 FunctionEnd
