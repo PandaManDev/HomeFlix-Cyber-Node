@@ -28,7 +28,7 @@ const transcodedMedia = new Map();
 const activeTranscodes = new Map();
 const remoteStreamSources = new Map();
 const localMediaPaths = new Map();
-const SUPPORTED_MEDIA_EXTENSIONS = new Set(['.mp4','.m4v','.mkv','.webm','.mov','.avi','.mpg','.mpeg','.m2ts','.ts','.ogv','.3gp','.wmv','.flv']);
+const SUPPORTED_MEDIA_EXTENSIONS = new Set(['.mp4','.m4v','.mkv','.webm','.mov','.avi','.mpg','.mpeg','.m2ts','.ts','.ogv','.3gp','.wmv','.flv','.jpg','.jpeg','.png','.gif','.webp','.bmp','.avif','.svg']);
 let pendingOpenFiles = [];
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
 if (!hasSingleInstanceLock) app.quit();
@@ -45,7 +45,14 @@ function queueOpenFiles(files) {
   const valid = files.filter(file => SUPPORTED_MEDIA_EXTENSIONS.has(path.extname(file).toLowerCase()) && fs.existsSync(file) && fs.statSync(file).isFile());
   if (!valid.length) return;
   pendingOpenFiles.push(...valid);
-  if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents.isLoading() === false) flushOpenFiles();
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+    // Native Electron fullscreen does not depend on browser user-gesture permissions.
+    mainWindow.setFullScreen(true);
+    if (mainWindow.webContents.isLoading() === false) flushOpenFiles();
+  }
 }
 function flushOpenFiles() {
   if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isLoading()) return;
