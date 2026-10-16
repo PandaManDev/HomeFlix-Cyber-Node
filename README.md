@@ -1,6 +1,6 @@
 # HomeFlix Cyber Node
 
-**Your personal media library, organized in one convenient place.** HomeFlix Cyber Node is a cross-platform personal media player built with Electron. It combines local video playback, media-library tools, a cyber-themed interface, desktop playback helpers, and companion controls for your phone.
+**Your personal media library, organized in one convenient place.** HomeFlix Cyber Node is a Windows personal media player built with Electron. It combines local video playback, media-library tools, a cyber-themed interface, desktop playback helpers, and companion controls for your phone.
 
 ## Highlights
 
@@ -12,8 +12,8 @@
 - **Cyber Mode:** Customize interface accents and toggle CRT scanlines.
 - **Phone remote:** Pair a phone on the same trusted Wi-Fi network to control desktop playback.
 - **Shared library:** Browse selected desktop media folders from a paired phone or tablet.
-- **Windows and Linux builds:** Build a Windows setup installer, Linux AppImage, or Debian package from source.
-- **Android companion:** An optional Capacitor companion app connects to the desktop over your local network.
+- **Windows desktop app:** Install HomeFlix using a Windows setup installer.
+- **Phone remote app:** Use the mobile-friendly remote page in your phone browser to control HomeFlix on your Windows PC. Add it to your phone's home screen for an app-like experience—no Android APK or separate mobile build is required.
 
 ## Get HomeFlix Cyber Node
 
@@ -27,8 +27,8 @@ Build artifacts are available only when the corresponding workflow has completed
 
 ## Requirements
 
-- A supported desktop OS for the installer you build (Windows or Linux).
-- A current Node.js LTS release and npm for building from source.
+- Windows 10 or later for the desktop installer.
+- A current Node.js LTS release and npm for building the Windows installer from source.
 - For phone remote/library features, the desktop and phone must be on the same trusted private Wi-Fi network.
 
 ## Build from source
@@ -54,14 +54,6 @@ npm run dist
 ```
 
 The NSIS setup installer is written to `release/`. The installer supports choosing an installation directory and creating Start Menu and desktop shortcuts.
-
-### Build Linux packages
-
-```bash
-npm run dist:linux
-```
-
-The Linux build is configured to produce x64 **AppImage** and **.deb** packages in `release/`.
 
 ### Icons
 
@@ -174,14 +166,3 @@ The desktop keeps the folder index in memory and streams files directly over the
 **Format note:** this first shared-library version streams the original file bytes. Whether a video plays on the phone depends on that phone browser's codecs; MKV/HEVC/DTS are not guaranteed to play in mobile browsers. Use H.264/AAC MP4 for broad compatibility. The desktop's existing FFmpeg conversion pipeline remains available for desktop playback; mobile transcoding is not yet implemented.
 
 
-## HomeFlix Companion for Android
-
-An Android companion app is built from `mobile/index.html` with Capacitor. It combines desktop pairing, play/pause/seek/volume controls, and the shared media library in one phone-friendly interface.
-
-1. Start the HomeFlix desktop app and install a desktop build containing the companion CORS/media-streaming changes.
-2. Keep the phone and desktop on the same trusted Wi-Fi network.
-3. Install the **HomeFlix Companion** APK from the successful [Build HomeFlix Android Companion workflow](https://github.com/PandaManDev/HomeFlix-Cyber-Node-App/actions/workflows/android-companion.yml). Open the workflow run, then download the `HomeFlix-Companion-Android-APK` artifact.
-4. Enter the desktop address shown in HomeFlix Settings (including the port, such as `http://192.168.1.50:47831`) and the six-digit PIN.
-5. Browse the shared library or use the remote controls.
-
-The Android companion connects directly to your desktop over the local network. Keep the desktop app running and do not forward its remote port to the public internet. The desktop must include the latest API CORS and media-token changes for the native app to connect and play shared files. Mobile playback remains subject to Android codec support; MKV files with unsupported codecs may not play until mobile transcoding is implemented.
