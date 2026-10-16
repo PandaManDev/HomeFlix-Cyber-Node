@@ -69,48 +69,68 @@ const LIBRARY_STORAGE_KEY = 'homeflix-library-v1';
 
         let discordProfileRefreshTimer = null;
         async function openLibrarySettings() {
-            document.getElementById('library-theme').value=state.libraryTheme;
+            const modal = document.getElementById('library-settings-modal');
+            const themeSelect = document.getElementById('library-theme');
             const hardwareToggle = document.getElementById('hardware-acceleration');
             const hardwareStatus = document.getElementById('hardware-acceleration-status');
-            if (hardwareToggle) {
-                hardwareToggle.disabled = !window.homeflixDesktop?.isDesktop || typeof window.homeflixDesktop.getHardwareAcceleration !== 'function';
+            if (!modal || !themeSelect) return;
+            themeSelect.value = state.libraryTheme || localStorage.getItem('homeflix-theme') || 'netflix';
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            if (hardwareToggle && hardwareStatus) {
+                const desktop = window.homeflixDesktop;
+                hardwareToggle.disabled = !(desktop?.isDesktop && typeof desktop.getHardwareAcceleration === 'function');
                 if (hardwareToggle.disabled) {
                     hardwareToggle.checked = true;
-                    hardwareStatus.textContent = 'Available in the installed Windows desktop app only.';
+                    hardwareStatus.textContent = 'Hardware acceleration controls are available in the installed Windows app.';
                 } else {
+                    hardwareStatus.textContent = 'Loading hardware acceleration setting…';
                     try {
-                        const setting = await window.homeflixDesktop.getHardwareAcceleration();
-                        hardwareToggle.checked = setting.enabled;
-                        hardwareStatus.textContent = setting.enabled ? 'Enabled. Changes require restarting HomeFlix.' : 'Disabled. Changes require restarting HomeFlix.';
-                    } catch {
-                        hardwareStatus.textContent = 'Could not read the desktop setting.';
+                        const setting = await desktop.getHardwareAcceleration();
+                        hardwareToggle.checked = !!setting?.enabled;
+                        hardwareStatus.textContent = hardwareToggle.checked
+                            ? 'Enabled. Restart HomeFlix after changing this option.'
+                            : 'Disabled. Restart HomeFlix after changing this option.';
+                    } catch (error) {
+                        hardwareStatus.textContent = 'Could not read this setting: ' + (error?.message || 'desktop setting unavailable');
                     }
                 }
             }
-            document.getElementById('library-settings-modal').classList.remove('hidden');
-            document.getElementById('library-settings-modal').classList.add('flex');
         }
         function closeLibrarySettings() {
-            document.getElementById('library-settings-modal').classList.add('hidden');
-            document.getElementById('library-settings-modal').classList.remove('flex');
+            const modal = document.getElementById('library-settings-modal');
+            if (!modal) return;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
         }
         async function saveLibrarySettings() {
-            state.libraryTheme=document.getElementById('library-theme').value;
-            localStorage.setItem('homeflix-theme',state.libraryTheme);
-            applyLibraryTheme(state.libraryTheme);
+            const themeSelect = document.getElementById('library-theme');
+            if (!themeSelect) return;
+            const chosenTheme = themeSelect.value || 'netflix';
+            try {
+                localStorage.setItem('homeflix-theme', chosenTheme);
+                state.libraryTheme = chosenTheme;
+                applyLibraryTheme(chosenTheme);
+            } catch (error) {
+                showToast('Could not save appearance settings: ' + (error?.message || 'storage unavailable'));
+                return;
+            }
             const hardwareToggle = document.getElementById('hardware-acceleration');
             let hardwareRestartNeeded = false;
-            if (hardwareToggle && window.homeflixDesktop?.isDesktop && typeof window.homeflixDesktop.setHardwareAcceleration === 'function') {
+            const desktop = window.homeflixDesktop;
+            if (hardwareToggle && !hardwareToggle.disabled && desktop?.isDesktop && typeof desktop.setHardwareAcceleration === 'function') {
                 try {
-                    const result = await window.homeflixDesktop.setHardwareAcceleration(hardwareToggle.checked);
-                    hardwareRestartNeeded = !!result.restartRequired;
+                    const result = await desktop.setHardwareAcceleration(!!hardwareToggle.checked);
+                    hardwareRestartNeeded = !!result?.restartRequired;
                 } catch (error) {
-                    showToast('Could not save hardware acceleration setting: ' + (error?.message || 'unknown error'));
+                    showToast('Appearance saved, but hardware acceleration failed: ' + (error?.message || 'unknown error'));
                     return;
                 }
             }
             closeLibrarySettings();
-            showToast(hardwareRestartNeeded ? 'Settings saved. Restart HomeFlix to apply hardware acceleration changes.' : 'Appearance settings saved.');
+            showToast(hardwareRestartNeeded
+                ? 'Settings saved. Restart HomeFlix to apply hardware acceleration changes.'
+                : 'Settings saved successfully.');
         }
         function showRemoteInfo() {
             const msg=window.homeflixDesktop ? 'Use the remote address shown by the HomeFlix desktop app and enter its pairing PIN on your phone. Keep both devices on the same trusted Wi-Fi.' : 'Install and open the Windows desktop build to enable a phone remote on your local Wi-Fi. The hosted website alone cannot accept incoming phone commands.';
