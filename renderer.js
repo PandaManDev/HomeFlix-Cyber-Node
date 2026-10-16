@@ -1245,6 +1245,7 @@ const LIBRARY_STORAGE_KEY = 'homeflix-library-v1';
       }
       $('hf-upgrade-launcher').addEventListener('click',()=>{render();$('hf-upgrade-panel').classList.add('open');});
       $('hf-upgrade-close').addEventListener('click',()=>$('hf-upgrade-panel').classList.remove('open'));
+      $('hf-open-settings').addEventListener('click',()=>{$('hf-upgrade-panel').classList.remove('open');openLibrarySettings();});
       $('hf-upgrade-panel').addEventListener('click',e=>{if(e.target===$('hf-upgrade-panel'))$('hf-upgrade-panel').classList.remove('open')});
       document.addEventListener('keydown',e=>{if(e.key==='Escape')$('hf-upgrade-panel').classList.remove('open')});
       $('hf-profile').addEventListener('change',e=>{db.active=e.target.value;persist();render();});
