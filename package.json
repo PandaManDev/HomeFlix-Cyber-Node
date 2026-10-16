@@ -11,7 +11,8 @@
     "dist": "npm run make-icon && electron-builder --win nsis --publish never",
     "dist:dir": "npm run make-icon && electron-builder --win dir",
     "deploy:cloudflare": "npx wrangler deploy --config wrangler.jsonc",
-    "preview:cloudflare": "npx wrangler dev --config wrangler.jsonc"
+    "preview:cloudflare": "npx wrangler dev --config wrangler.jsonc",
+    "dist:linux": "npm run make-icon && electron-builder --linux AppImage deb --publish never"
   },
   "dependencies": {
     "express": "^4.21.2",
@@ -95,6 +96,24 @@
       ],
       "name": "HomeFlix Video",
       "role": "Viewer"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "AudioVideo",
+      "artifactName": "HomeFlix-Cyber-Node-${version}.${ext}"
     }
   }
 }
