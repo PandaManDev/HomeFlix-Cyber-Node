@@ -1,5 +1,84 @@
 # HomeFlix Cyber Node
 
+**Your personal media library, organized in one convenient place.** HomeFlix Cyber Node is a cross-platform personal media player built with Electron. It combines local video playback, media-library tools, a cyber-themed interface, desktop playback helpers, and companion controls for your phone.
+
+## Highlights
+
+- **Personal media library:** Open and organize videos stored on your computer.
+- **Wide video-file selection:** Supports common formats including MP4, M4V, MKV, WebM, MOV, AVI, MPG/MPEG, M2TS/TS, OGV, 3GP, WMV, and FLV.
+- **Desktop playback assistance:** The Electron desktop build bundles FFmpeg for conversion-assisted playback when Chromium cannot decode a supported input.
+- **Continue watching and My List:** Save playback progress and favorites in local browser/Electron storage.
+- **Profiles and backups:** Keep per-profile viewing data on the current device and export or import it as JSON.
+- **Cyber Mode:** Customize interface accents and toggle CRT scanlines.
+- **Phone remote:** Pair a phone on the same trusted Wi-Fi network to control desktop playback.
+- **Shared library:** Browse selected desktop media folders from a paired phone or tablet.
+- **Windows and Linux builds:** Build a Windows setup installer, Linux AppImage, or Debian package from source.
+- **Android companion:** An optional Capacitor companion app connects to the desktop over your local network.
+
+## Get HomeFlix Cyber Node
+
+Download the latest available builds and check project releases/workflows here:
+
+- [GitHub repository](https://github.com/PandaManDev/HomeFlix-Cyber-Node-App)
+- [GitHub Actions build workflows](https://github.com/PandaManDev/HomeFlix-Cyber-Node-App/actions)
+- [HomeFlix Cyber Node Download Center](https://homeflix-cyber-node.pandaman420.workers.dev/)
+
+Build artifacts are available only when the corresponding workflow has completed successfully. Do not assume an installer exists for a workflow that is still running or has failed.
+
+## Requirements
+
+- A supported desktop OS for the installer you build (Windows or Linux).
+- A current Node.js LTS release and npm for building from source.
+- For phone remote/library features, the desktop and phone must be on the same trusted private Wi-Fi network.
+
+## Build from source
+
+Clone the repository and install dependencies:
+
+```bash
+git clone https://github.com/PandaManDev/HomeFlix-Cyber-Node-App.git
+cd HomeFlix-Cyber-Node-App
+npm install
+```
+
+Start the desktop app during development:
+
+```bash
+npm start
+```
+
+### Build a Windows installer
+
+```bash
+npm run dist
+```
+
+The NSIS setup installer is written to `release/`. The installer supports choosing an installation directory and creating Start Menu and desktop shortcuts.
+
+### Build Linux packages
+
+```bash
+npm run dist:linux
+```
+
+The Linux build is configured to produce x64 **AppImage** and **.deb** packages in `release/`.
+
+### Icons
+
+The build commands generate application icons before packaging by running `npm run make-icon`.
+
+## Important notes
+
+- HomeFlix is a personal media player; your media files are not included in installer builds.
+- Favorites and viewing progress are stored locally and are not automatically synchronized across devices. Export a backup before clearing browser data.
+- MKV is a container, not a codec. Playback depends on the codecs inside the file and on the installed playback runtime.
+- FFmpeg conversion runs on the desktop. Local conversion uses temporary disk space; the original local video is not modified.
+- Phone remote and shared-library access are intended for a trusted local network. **Do not expose port 47831 to the public internet.**
+- A phone remote controls the desktop player; it does not stream the desktop's video to the phone. The shared library can stream selected files over the local network, but mobile browser codec support varies.
+- Pushing source code to GitHub does not automatically update an already-installed desktop app. Build and install a new package to use updated desktop code.
+
+---
+
 ## Cloudflare deployment
 
 This repository includes `wrangler.jsonc` configured to publish the static website from `www/`, keeping Electron, Android, scripts, and installed dependencies out of the Cloudflare asset upload.
