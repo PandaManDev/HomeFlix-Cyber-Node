@@ -222,6 +222,12 @@ const LIBRARY_STORAGE_KEY = 'homeflix-library-v1';
             }
         }
 
+        // If Chromium suspends Web Audio while media is actively playing, try to
+        // recover the existing graph instead of rebuilding it (which can silence media).
+        function recoverAudioIfPlaying() {
+            if (video && !video.paused && !video.ended) resumeAudioEngine();
+        }
+
         // Keep the Web Audio graph alive across fullscreen changes and recover its
         // suspended state after the browser finishes changing the presentation mode.
         function recoverAudioAfterDisplayChange() {
@@ -253,6 +259,7 @@ const LIBRARY_STORAGE_KEY = 'homeflix-library-v1';
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
                 if (!AudioContext) return;
                 state.audioContext = new AudioContext({ latencyHint: 'playback' });
+                state.audioContext.addEventListener('statechange', recoverAudioIfPlaying);
                 state.audioSource = state.audioContext.createMediaElementSource(video);
                 state.gainNode = state.audioContext.createGain();
                 state.analyser = state.audioContext.createAnalyser();
@@ -1242,6 +1249,18 @@ const LIBRARY_STORAGE_KEY = 'homeflix-library-v1';
                 const next = Math.max(0, cur - 0.1);
                 volumeSlider.value = next;
                 volumeSlider.dispatchEvent(new Event('input'));
+            } else if (e.code === 'KeyN') {
+                e.preventDefault();
+                playNext();
+            } else if (e.code === 'KeyP') {
+                e.preventDefault();
+                selectQueueItem(Math.max(0, state.currentIndex - 1));
+            } else if (e.code === 'KeyC') {
+                e.preventDefault();
+                toggleCRT();
+            } else if (e.code === 'KeyR') {
+                e.preventDefault();
+                toggleLoop();
             } else if (e.key === '?') {
                 e.preventDefault();
                 toggleShortcutsModal();
