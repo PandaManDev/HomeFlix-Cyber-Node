@@ -8,7 +8,7 @@ A personal media library and desktop video player for Windows, with a Netflix-in
 
 1. Open the Releases page.
 2. Choose the latest release.
-3. Download the `HomeFlix-Cyber-Node-Setup-*.exe` installer asset.
+3. Download the `HomeFlix-Cyber-Node-Setup.exe` installer asset.
 4. Run the installer and follow the setup prompts.
 
 Use the installer attached to a published release. If a release has no installer asset, check back after its build finishes.
