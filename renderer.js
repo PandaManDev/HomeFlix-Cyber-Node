@@ -1101,9 +1101,9 @@ const LIBRARY_STORAGE_KEY = 'homeflix-library-v1';
 
         let lastVisualizerFrame = 0;
         let visualizerData = null;
-        function renderVisualizer(timestamp = 0) {
-            // Inline controls in index.html and generated library cards call window-level handlers.
-        // Functions inside this renderer IIFE are otherwise private and inline onclicks cannot reach them.
+
+        // Expose handlers once during initialization so every inline UI control can call them.
+        // Keeping this outside renderVisualizer prevents the UI from depending on animation frames.
         Object.assign(window, {
             openLibraryItem, openLibrarySettings, closeLibrarySettings, saveLibrarySettings,
             setLibraryView, setLibraryFilter, showRemoteInfo, connectWebDiscordBridge,
@@ -1113,7 +1113,8 @@ const LIBRARY_STORAGE_KEY = 'homeflix-library-v1';
             toggleLibraryFlag, togglePhotoViewerFullscreen, closePhotoViewer
         });
 
-        requestAnimationFrame(renderVisualizer);
+        function renderVisualizer(timestamp = 0) {
+            requestAnimationFrame(renderVisualizer);
             // Limit decorative canvas work to ~24 FPS so fullscreen/layout changes
             // cannot starve the media playback pipeline on slower machines.
             if (timestamp - lastVisualizerFrame < 42) return;
