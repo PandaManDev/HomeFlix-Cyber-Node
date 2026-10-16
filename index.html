@@ -198,6 +198,7 @@
                     <div class="relative flex-1 min-w-0"><i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500"></i><input id="library-search" type="search" placeholder="Search your library..." class="w-full rounded-xl bg-black/50 border border-white/15 py-3 pl-11 pr-4 text-sm text-white placeholder-zinc-500 outline-none focus:border-red-600"></div>
                     <select id="library-genre" class="rounded-xl bg-[#202020] border border-white/15 px-4 py-3 text-sm text-white outline-none focus:border-red-600"><option value="all">All genres</option><option>Action</option><option>Comedy</option><option>Drama</option><option>Horror</option><option>Sci-Fi</option><option>Documentary</option><option>Animation</option><option>Other</option></select>
                     <select id="library-sort" aria-label="Sort library" class="rounded-xl bg-[#202020] border border-white/15 px-4 py-3 text-sm text-white outline-none focus:border-red-600"><option value="recent">Recently added</option><option value="title">Title A–Z</option><option value="title-desc">Title Z–A</option><option value="duration">Longest first</option><option value="progress">Most watched progress</option></select>
+                    <button id="library-rescan" type="button" class="px-4 py-3 rounded-xl bg-white/10 border border-white/15 text-sm text-white hover:bg-white/15" title="Choose a folder again to refresh your collection"><i class="fa-solid fa-rotate mr-2"></i>Rescan folder</button>
                     <div class="flex rounded-xl bg-black/40 border border-white/10 p-1">
                         <button id="grid-view-btn" onclick="setLibraryView('grid')" class="px-3 py-2 rounded-lg text-sm bg-red-600 text-white" title="Grid view"><i class="fa-solid fa-grip"></i></button>
                         <button id="list-view-btn" onclick="setLibraryView('list')" class="px-3 py-2 rounded-lg text-sm text-zinc-400 hover:text-white" title="List view"><i class="fa-solid fa-list"></i></button>
@@ -1395,6 +1396,17 @@
             showToast(`Playback speed set to ${val}x`);
         }
 
+        function setSubtitleSize(size) {
+            const allowed = ['small','medium','large','xlarge'];
+            const selected = allowed.includes(size) ? size : 'medium';
+            const sizes = {small:'0.8rem',medium:'1rem',large:'1.35rem',xlarge:'1.7rem'};
+            const display = document.getElementById('subtitle-display');
+            if (display) { display.style.fontSize = sizes[selected]; display.dataset.size = selected; }
+            try { localStorage.setItem('homeflix.subtitleSize', selected); } catch {}
+            showToast('Subtitle size: ' + selected);
+        }
+        try { setSubtitleSize(localStorage.getItem('homeflix.subtitleSize') || 'medium'); } catch { setSubtitleSize('medium'); }
+
         function toggleLoop() {
             state.isLooping = !state.isLooping;
             const btn = document.getElementById('loop-btn');
@@ -1565,6 +1577,7 @@
         // Library imports share the same queue/playback engine as the original player.
         document.getElementById('library-file-selector').addEventListener('change', e => { handleFiles(e.target.files); e.target.value=''; });
         document.getElementById('library-folder-selector').addEventListener('change', e => { handleFiles(e.target.files); e.target.value=''; });
+        document.getElementById('library-rescan').addEventListener('click', () => document.getElementById('library-folder-selector').click());
         document.getElementById('library-search').addEventListener('input', e => { state.librarySearch=e.target.value.toLowerCase().trim(); renderLibrary(); });
         document.getElementById('library-genre').addEventListener('change', e => { state.libraryGenre=e.target.value; renderLibrary(); });
         document.getElementById('library-sort').addEventListener('change', () => renderLibrary());
