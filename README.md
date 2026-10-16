@@ -73,7 +73,7 @@ The build commands generate application icons before packaging by running `npm r
 
 ## Cloudflare deployment
 
-This repository includes `wrangler.jsonc` configured to publish the static website from `www/`, keeping Electron, Android, scripts, and installed dependencies out of the Cloudflare asset upload.
+This repository includes `wrangler.jsonc` configured to publish the static website from `www/`, keeping Electron, scripts, and installed dependencies out of the Cloudflare asset upload.
 
 In Cloudflare's build settings, use:
 
