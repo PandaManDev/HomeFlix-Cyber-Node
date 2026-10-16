@@ -89,7 +89,8 @@
         "ogv",
         "3gp",
         "wmv",
-        "flv"
+        "flv",
+        "jpg", "jpeg", "png", "gif", "webp", "bmp", "avif", "svg"
       ],
       "name": "HomeFlix Video",
       "role": "Viewer"
