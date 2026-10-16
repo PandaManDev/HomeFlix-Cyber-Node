@@ -556,6 +556,14 @@
         function escapeLibraryText(value) { return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
         function syncLibraryMetadata(item) {
             if (!item) return;
+            const existing=state.playlist.find(other=>other!==item && libraryKey(other)===libraryKey(item));
+            if (existing) {
+                item.favorite=!!(item.favorite||existing.favorite);
+                item.watchlist=!!(item.watchlist||existing.watchlist);
+                item.progress=Math.max(Number(item.progress)||0,Number(existing.progress)||0);
+                item.duration=Number(item.duration)||Number(existing.duration)||0;
+                item.addedAt=Math.min(Number(item.addedAt)||Date.now(),Number(existing.addedAt)||Date.now());
+            }
             const saved=state.savedLibrary[libraryKey(item)] || {};
             item.genre=item.genre || saved.genre || inferGenre(item.title);
             item.addedAt=item.addedAt || saved.addedAt || Date.now();
@@ -804,6 +812,7 @@
 
         function handleFiles(files) {
             let addedCount = 0;
+            const existingKeys=new Set(state.playlist.map(libraryKey));
             for (const file of files) {
                 const videoExtensions = /\.(mp4|m4v|mkv|webm|mov|avi|mpg|mpeg|ts|m2ts|ogv|3gp|wmv|flv)$/i;
                 if ((file.type && file.type.startsWith('video/')) || videoExtensions.test(file.name || '')) {
@@ -823,6 +832,9 @@
                         favorite: false,
                         watchlist: false
                     };
+                    const key=libraryKey(item);
+                    if (existingKeys.has(key)) { URL.revokeObjectURL(blobUrl); continue; }
+                    existingKeys.add(key);
                     syncLibraryMetadata(item);
                     state.playlist.push(item);
                     addedCount++;
