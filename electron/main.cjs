@@ -57,7 +57,18 @@ function queueOpenFiles(files) {
 function flushOpenFiles() {
   if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isLoading()) return;
   const files = pendingOpenFiles.splice(0);
-  for (const file of files) mainWindow.webContents.executeJavaScript(`window.homeflixOpenFileFromOS && window.homeflixOpenFileFromOS(${JSON.stringify(file)})`).catch(error => console.warn('Could not open selected media:', error.message));
+  if (files.length) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+    // Files opened during app startup must get the same fullscreen behavior as files
+    // opened while HomeFlix is already running.
+    mainWindow.setFullScreen(true);
+  }
+  for (const file of files) {
+    mainWindow.webContents.executeJavaScript(`window.homeflixOpenFileFromOS && window.homeflixOpenFileFromOS(${JSON.stringify(file)})`)
+      .catch(error => console.warn('Could not open selected media:', error.message));
+  }
 }
 
 const sharedMediaFiles = new Map();
