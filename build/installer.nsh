@@ -56,9 +56,9 @@ Function HomeFlixRefreshDiskInfo
   StrCpy $HF_DiskCheckOK "0"
   StrCpy $HF_AvailableMB "Unknown"
 
-  ; Use NSIS FileFunc DriveSpace instead of passing 64-bit byte counts through
-  ; 32-bit System plugin output pointers. /S=M requests MB, avoiding overflow.
-  ${DriveSpace} "$INSTDIR" "/D=F /S=M" $HF_AvailableMB $0
+  ; FileFunc DriveSpace takes the target path and two output variables:
+  ; free space in MB, then total drive size in MB.
+  ${DriveSpace} "$INSTDIR" $HF_AvailableMB $0
   ${If} $HF_AvailableMB != ""
   ${AndIf} $HF_AvailableMB != "error"
     ${If} $HF_AvailableMB >= ${HOMEFLIX_REQUIRED_MB}
