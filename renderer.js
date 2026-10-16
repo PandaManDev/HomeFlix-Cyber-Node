@@ -1075,7 +1075,18 @@ const LIBRARY_STORAGE_KEY = 'homeflix-library-v1';
         let lastVisualizerFrame = 0;
         let visualizerData = null;
         function renderVisualizer(timestamp = 0) {
-            requestAnimationFrame(renderVisualizer);
+            // Inline controls in index.html and generated library cards call window-level handlers.
+        // Functions inside this renderer IIFE are otherwise private and inline onclicks cannot reach them.
+        Object.assign(window, {
+            openLibraryItem, openLibrarySettings, closeLibrarySettings, saveLibrarySettings,
+            setLibraryView, setLibraryFilter, showRemoteInfo, connectWebDiscordBridge,
+            togglePlay, skipTime, toggleMute, changeSpeed, toggleFullscreen, toggleAppFullscreen,
+            promptAddURL, closeUrlModal, confirmAddURL, clearQueue, toggleLoop, playNext,
+            selectQueueItem, removeFromQueue, toggleShortcutsModal, toggleCRT, showToast,
+            toggleLibraryFlag, togglePhotoViewerFullscreen, closePhotoViewer
+        });
+
+        requestAnimationFrame(renderVisualizer);
             // Limit decorative canvas work to ~24 FPS so fullscreen/layout changes
             // cannot starve the media playback pipeline on slower machines.
             if (timestamp - lastVisualizerFrame < 42) return;
