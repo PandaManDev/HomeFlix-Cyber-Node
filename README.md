@@ -31,6 +31,15 @@ Build artifacts are available only when the corresponding workflow has completed
 - A current Node.js LTS release and npm for building the Windows installer from source.
 - For phone remote/library features, the desktop and phone must be on the same trusted private Wi-Fi network.
 
+## JavaScript project structure
+
+The application logic is organized in JavaScript files instead of being embedded in large HTML files:
+
+- `renderer.js` — HomeFlix desktop UI behavior, library, player controls, settings, and photo viewer.
+- `electron/main.cjs` — Electron main process and Windows desktop integration.
+- `mobile/remote.js` — phone remote pairing, playback controls, and shared-library interactions.
+- `index.html` and `mobile/index.html` — page structure and presentation.
+
 ## Build from source
 
 Clone the repository and install dependencies:
