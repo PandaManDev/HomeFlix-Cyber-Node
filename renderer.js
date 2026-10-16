@@ -94,7 +94,7 @@ const LIBRARY_STORAGE_KEY = 'homeflix-library-v1';
             document.getElementById('library-settings-modal').classList.add('hidden');
             document.getElementById('library-settings-modal').classList.remove('flex');
         }
-        function saveLibrarySettings() {
+        async function saveLibrarySettings() {
             state.libraryTheme=document.getElementById('library-theme').value;
             localStorage.setItem('homeflix-theme',state.libraryTheme);
             applyLibraryTheme(state.libraryTheme);
