@@ -36,7 +36,9 @@
       "electron/**/*",
       "build/**/*",
       "package.json",
-      "supabase-config.js"
+      "supabase-config.js",
+      "renderer.js",
+      "mobile/**/*"
     ],
     "asar": true,
     "win": {
