@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   build-windows:
-    name: Build Windows setup and uninstaller
+    name: Build Windows setup installer
     runs-on: windows-latest
     timeout-minutes: 45
     steps:
@@ -49,19 +49,6 @@ jobs:
       - name: Build Windows NSIS installer
         run: npm run dist
 
-      - name: Build standalone uninstaller executable
-        shell: pwsh
-        run: dotnet publish tools/HomeFlixUninstaller/HomeFlixUninstaller.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o release/uninstaller
-
-      - name: Stage uninstaller executable
-        shell: pwsh
-        run: |
-          $source = "release/uninstaller/HomeFlix-Uninstaller.exe"
-          if (!(Test-Path $source)) {
-            throw "Uninstaller build did not produce $source"
-          }
-          Copy-Item $source "release/HomeFlix-Uninstaller.exe" -Force
-
       - name: Verify installer outputs
         shell: pwsh
         run: |
@@ -70,18 +57,13 @@ jobs:
             Get-ChildItem release -Recurse | Format-Table FullName, Length
             throw "Expected installer not found: $installer"
           }
-          if (!(Test-Path "release/HomeFlix-Uninstaller.exe")) {
-            throw "Expected standalone uninstaller was not found."
-          }
           Get-ChildItem release -Filter "*.exe" | Format-Table Name, Length
 
       - name: Upload installer downloads
         uses: actions/upload-artifact@v4
         with:
-          name: HomeFlix-Cyber-Node-Windows-Installers
-          path: |
-            release/HomeFlix-Cyber-Node-Setup-${{ steps.meta.outputs.version }}.exe
-            release/HomeFlix-Uninstaller.exe
+          name: HomeFlix-Cyber-Node-Windows-Installer
+          path: release/HomeFlix-Cyber-Node-Setup-${{ steps.meta.outputs.version }}.exe
           if-no-files-found: error
           retention-days: 30
 
@@ -93,11 +75,9 @@ jobs:
           body: |
             Automated Windows installer build from the main branch.
 
-            - HomeFlix Cyber Node setup installer
-            - Standalone HomeFlix uninstaller
+            - HomeFlix Cyber Node Windows setup installer (.exe)
           files: |
             release/HomeFlix-Cyber-Node-Setup-${{ steps.meta.outputs.version }}.exe
-            release/HomeFlix-Uninstaller.exe
           make_latest: true
           fail_on_unmatched_files: true
         env:
