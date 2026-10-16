@@ -11,8 +11,7 @@
     "dist": "npm run make-icon && electron-builder --win nsis --publish never",
     "dist:dir": "npm run make-icon && electron-builder --win dir",
     "deploy:cloudflare": "npx wrangler deploy --config wrangler.jsonc",
-    "preview:cloudflare": "npx wrangler dev --config wrangler.jsonc",
-    "dist:linux": "npm run make-icon && electron-builder --linux AppImage deb --publish never"
+    "preview:cloudflare": "npx wrangler dev --config wrangler.jsonc"
   },
   "dependencies": {
     "express": "^4.21.2",
@@ -20,9 +19,6 @@
     "ffmpeg-static": "^5.2.0"
   },
   "devDependencies": {
-    "@capacitor/android": "^7.4.3",
-    "@capacitor/cli": "^7.4.3",
-    "@capacitor/core": "^7.4.3",
     "electron": "^38.2.0",
     "electron-builder": "^26.0.12",
     "png-to-ico": "^2.1.8",
