@@ -1799,6 +1799,7 @@
         $('hf-favorite-list').innerHTML=''; if(!p.favorites.length) $('hf-favorite-list').innerHTML='<div class="hf-muted">Your list is empty. Add the current title while it is playing.</div>';
         p.favorites.forEach(k=>{const row=document.createElement('div');row.className='hf-item';const label=document.createElement('span');label.textContent=k;const rm=document.createElement('button');rm.className='hf-btn';rm.textContent='Remove';rm.onclick=()=>{p.favorites=p.favorites.filter(x=>x!==k);persist();render()};row.append(label,rm);$('hf-favorite-list').append(row);});
         $('hf-diagnostics').textContent='Player: '+(video?'video element detected':'no video element found')+' · Network: '+(navigator.onLine?'online':'offline')+' · Storage: '+(navigator.storage&&navigator.storage.estimate?'available':'browser-managed');
+        if(navigator.storage&&navigator.storage.estimate){navigator.storage.estimate().then(({usage,quota})=>{const fmtBytes=n=>{if(!Number.isFinite(n))return 'unknown';const u=['B','KB','MB','GB','TB'];let i=0,v=n;while(v>=1024&&i<u.length-1){v/=1024;i++;}return v.toFixed(i?1:0)+' '+u[i];};$('hf-diagnostics').textContent+=' · Used: '+fmtBytes(usage||0)+' / '+fmtBytes(quota||0);}).catch(()=>{});}
       }
       $('hf-upgrade-launcher').addEventListener('click',()=>{render();$('hf-upgrade-panel').classList.add('open');});
       $('hf-upgrade-close').addEventListener('click',()=>$('hf-upgrade-panel').classList.remove('open'));
