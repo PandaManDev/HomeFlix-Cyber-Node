@@ -68,8 +68,25 @@ const LIBRARY_STORAGE_KEY = 'homeflix-library-v1';
         }
 
         let discordProfileRefreshTimer = null;
-        function openLibrarySettings() {
+        async function openLibrarySettings() {
             document.getElementById('library-theme').value=state.libraryTheme;
+            const hardwareToggle = document.getElementById('hardware-acceleration');
+            const hardwareStatus = document.getElementById('hardware-acceleration-status');
+            if (hardwareToggle) {
+                hardwareToggle.disabled = !window.homeflixDesktop?.isDesktop || typeof window.homeflixDesktop.getHardwareAcceleration !== 'function';
+                if (hardwareToggle.disabled) {
+                    hardwareToggle.checked = true;
+                    hardwareStatus.textContent = 'Available in the installed Windows desktop app only.';
+                } else {
+                    try {
+                        const setting = await window.homeflixDesktop.getHardwareAcceleration();
+                        hardwareToggle.checked = setting.enabled;
+                        hardwareStatus.textContent = setting.enabled ? 'Enabled. Changes require restarting HomeFlix.' : 'Disabled. Changes require restarting HomeFlix.';
+                    } catch {
+                        hardwareStatus.textContent = 'Could not read the desktop setting.';
+                    }
+                }
+            }
             document.getElementById('library-settings-modal').classList.remove('hidden');
             document.getElementById('library-settings-modal').classList.add('flex');
         }
@@ -81,8 +98,19 @@ const LIBRARY_STORAGE_KEY = 'homeflix-library-v1';
             state.libraryTheme=document.getElementById('library-theme').value;
             localStorage.setItem('homeflix-theme',state.libraryTheme);
             applyLibraryTheme(state.libraryTheme);
+            const hardwareToggle = document.getElementById('hardware-acceleration');
+            let hardwareRestartNeeded = false;
+            if (hardwareToggle && window.homeflixDesktop?.isDesktop && typeof window.homeflixDesktop.setHardwareAcceleration === 'function') {
+                try {
+                    const result = await window.homeflixDesktop.setHardwareAcceleration(hardwareToggle.checked);
+                    hardwareRestartNeeded = !!result.restartRequired;
+                } catch (error) {
+                    showToast('Could not save hardware acceleration setting: ' + (error?.message || 'unknown error'));
+                    return;
+                }
+            }
             closeLibrarySettings();
-            showToast('Appearance settings saved.');
+            showToast(hardwareRestartNeeded ? 'Settings saved. Restart HomeFlix to apply hardware acceleration changes.' : 'Appearance settings saved.');
         }
         function showRemoteInfo() {
             const msg=window.homeflixDesktop ? 'Use the remote address shown by the HomeFlix desktop app and enter its pairing PIN on your phone. Keep both devices on the same trusted Wi-Fi.' : 'Install and open the Windows desktop build to enable a phone remote on your local Wi-Fi. The hosted website alone cannot accept incoming phone commands.';
