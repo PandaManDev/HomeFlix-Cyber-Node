@@ -18,7 +18,7 @@ Var HF_LocationInfo
 Var HF_FreeInfo
 Var HF_AvailableMB
 Var HF_DiskCheckOK
-!define HOMEFLIX_REQUIRED_MB 500
+!define HOMEFLIX_REQUIRED_MB 1024
 
 Page custom HomeFlixDiskPageCreate HomeFlixDiskPageLeave
 
@@ -36,7 +36,7 @@ Function HomeFlixDiskPageCreate
 
   ${NSD_CreateLabel} 0 66u 100% 18u "RECOMMENDED APP SPACE"
   Pop $0
-  ${NSD_CreateLabel} 0 86u 100% 28u "500 MB minimum recommendation for the application. Movies and shows need extra storage."
+  ${NSD_CreateLabel} 0 86u 100% 28u "1 GB minimum free-space requirement for the application. Movies and shows need extra storage."
   Pop $0
 
   ${NSD_CreateLabel} 0 124u 100% 18u "INSTALL LOCATION"
@@ -55,16 +55,16 @@ Function HomeFlixRefreshDiskInfo
   StrCpy $HF_DiskCheckOK "0"
   StrCpy $HF_AvailableMB "Unknown"
   ; GetDiskFreeSpaceEx returns 64-bit byte counts. The first output is the
-  ; caller-available free bytes; convert to MB before comparing with 500 MB.
+  ; caller-available free bytes; convert to MB before comparing with 1024 MB (1 GB).
   System::Call 'kernel32::GetDiskFreeSpaceEx(t "$INSTDIR", *l .r1, *l .r2, *l .r3) i .r0'
   ${If} $0 != 0
     System::Int64Op $1 / 1048576
     Pop $HF_AvailableMB
     ${If} $HF_AvailableMB >= ${HOMEFLIX_REQUIRED_MB}
       StrCpy $HF_DiskCheckOK "1"
-      SendMessage $HF_FreeInfo ${WM_SETTEXT} 0 "STR:AVAILABLE SPACE: $HF_AvailableMB MB — enough for the 500 MB recommendation."
+      SendMessage $HF_FreeInfo ${WM_SETTEXT} 0 "STR:AVAILABLE SPACE: $HF_AvailableMB MB — enough for the 1 GB requirement."
     ${Else}
-      SendMessage $HF_FreeInfo ${WM_SETTEXT} 0 "STR:LOW SPACE WARNING: $HF_AvailableMB MB available; 500 MB is recommended."
+      SendMessage $HF_FreeInfo ${WM_SETTEXT} 0 "STR:LOW SPACE WARNING: $HF_AvailableMB MB available; 1 GB is required."
     ${EndIf}
   ${Else}
     SendMessage $HF_FreeInfo ${WM_SETTEXT} 0 "STR:Free space could not be read. Check the drive before continuing."
@@ -74,7 +74,7 @@ FunctionEnd
 Function HomeFlixDiskPageLeave
   Call HomeFlixRefreshDiskInfo
   ${If} $HF_DiskCheckOK != "1"
-    MessageBox MB_ICONEXCLAMATION|MB_YESNO "The selected drive could not be confirmed to have at least 500 MB free. Continue anyway?" IDYES +2
+    MessageBox MB_ICONSTOP "HomeFlix setup requires at least 1 GB of available space on the selected drive. Choose another drive or free up space before continuing."
     Abort
   ${EndIf}
 FunctionEnd
