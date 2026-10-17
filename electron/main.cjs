@@ -1,11 +1,11 @@
-const { app, BrowserWindow, shell, ipcMain, protocol, net, dialog, Tray, Menu, nativeImage } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, protocol, net, dialog } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const { spawn } = require('node:child_process');
 const crypto = require('node:crypto');
 const { pathToFileURL } = require('node:url');
-const os = require('node:os');
-const express = require('express');
+
+
 const DiscordRPC = require('discord-rpc');
 const { setupAutoUpdates } = require('./updater.cjs');
 
@@ -72,266 +72,16 @@ function flushOpenFiles() {
   }
 }
 
-const sharedMediaFiles = new Map();
-let sharedMediaFolders = [];
-
 const APP_ID = 'com.homeflix.cybernode';
 const WEB_URL = 'https://homeflix-cyber-node.vercel.app/';
-const REMOTE_PORT = Number(process.env.HOMEFLIX_REMOTE_PORT || 47831);
-const pin = String(crypto.randomInt(100000, 1000000));
-const tokens = new Map();
-const pairingAttempts = new Map();
-const TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 let mainWindow;
-let tray = null;
 let isQuitting = false;
-let backgroundModeEnabled = true;
-let remoteServer;
 let discordClient;
 let discordReady = false;
 let discordRetryTimer;
 let lastDiscordUpdate = 0;
 let lastDiscordKey = '';
 let remoteStatus = { title: 'HomeFlix', playing: false, currentTime: 0, duration: 0, volume: 1 };
-
-function getLanAddress() {
-  const interfaces = os.networkInterfaces();
-  for (const list of Object.values(interfaces)) {
-    for (const item of list || []) {
-      if (item.family === 'IPv4' && !item.internal) return item.address;
-    }
-  }
-  return '127.0.0.1';
-}
-function getRemoteInfo() {
-  const host = getLanAddress();
-  return { url: `http://${host}:${REMOTE_PORT}/`, host, port: REMOTE_PORT, pin };
-}
-
-function startRemoteServer() {
-  const serverApp = express();
-  serverApp.use((req, res, next) => {
-    const origin = String(req.headers.origin || '');
-    if (origin === 'https://localhost' || origin === 'capacitor://localhost') {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-      res.setHeader('Vary', 'Origin');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
-      res.setHeader('Access-Control-Allow-Private-Network', 'true');
-      res.setHeader('Access-Control-Max-Age', '600');
-    }
-    if (req.method === 'OPTIONS') return res.sendStatus(204);
-    next();
-  });
-  serverApp.use(express.json({ limit: '32kb' }));
-  const allowedDiscordOrigins = new Set(['https://homeflix-cyber-node.vercel.app', 'http://localhost:3000', 'http://127.0.0.1:3000']);
-  serverApp.options('/api/discord-presence/:mode?', (req, res) => {
-    const origin = req.headers.origin;
-    if (allowedDiscordOrigins.has(origin)) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-      res.setHeader('Vary', 'Origin');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-      res.setHeader('Access-Control-Allow-Private-Network', 'true');
-      res.setHeader('Access-Control-Max-Age', '600');
-      return res.sendStatus(204);
-    }
-    return res.sendStatus(403);
-  });
-  serverApp.get('/api/discord-presence/status', (req, res) => {
-    const origin = req.headers.origin;
-    if (!allowedDiscordOrigins.has(origin)) return res.sendStatus(403);
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Vary', 'Origin');
-    res.setHeader('Access-Control-Allow-Private-Network', 'true');
-    res.setHeader('Cache-Control', 'no-store');
-    return res.json({ ok: true, companion: true, discordReady });
-  });
-  serverApp.post('/api/discord-presence/auto', (req, res) => {
-    const origin = req.headers.origin;
-    if (!allowedDiscordOrigins.has(origin)) return res.status(403).json({ error: 'Origin not allowed' });
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Vary', 'Origin');
-    res.setHeader('Access-Control-Allow-Private-Network', 'true');
-    res.setHeader('Cache-Control', 'no-store');
-    const presence = req.body?.presence;
-    if (!presence || typeof presence !== 'object') return res.status(400).json({ error: 'Presence is required' });
-    if (presence.clear) clearDiscordPresence();
-    else updateDiscordPresence({
-      title: cleanPresenceText(presence.title, 'HomeFlix Cyber Node'),
-      playing: Boolean(presence.playing),
-      currentTime: Math.max(0, Number(presence.currentTime) || 0),
-      duration: Math.max(0, Number(presence.duration) || 0)
-    });
-    return res.json({ ok: true, discordReady });
-  });
-  serverApp.post('/api/discord-presence', (req, res) => {
-    const origin = req.headers.origin;
-    if (!allowedDiscordOrigins.has(origin)) {
-      return res.status(403).json({ error: 'Origin not allowed' });
-    }
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Vary', 'Origin');
-    res.setHeader('Access-Control-Allow-Private-Network', 'true');
-    if (String(req.body?.pin || '') !== pin) return res.status(401).json({ error: 'Incorrect pairing PIN' });
-    if (req.body?.action === 'ping') return res.json({ ok: true, connected: discordReady });
-    const presence = req.body?.presence;
-    if (!presence || typeof presence !== 'object') return res.status(400).json({ error: 'Presence is required' });
-    if (presence.clear) clearDiscordPresence();
-    else updateDiscordPresence({
-      title: cleanPresenceText(presence.title, 'HomeFlix Cyber Node'),
-      playing: Boolean(presence.playing),
-      currentTime: Math.max(0, Number(presence.currentTime) || 0),
-      duration: Math.max(0, Number(presence.duration) || 0)
-    });
-    return res.json({ ok: true, discordReady });
-  });
-  serverApp.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'remote.html')));
-  serverApp.get('/api/info', (_req, res) => res.json({ app: 'HomeFlix Cyber Node', name: os.hostname() }));
-  serverApp.post('/api/pair', (req, res) => {
-    const ip = String(req.ip || req.socket?.remoteAddress || 'unknown');
-    const now = Date.now();
-    const attempt = pairingAttempts.get(ip) || { count: 0, resetAt: now + 10 * 60 * 1000 };
-    if (now > attempt.resetAt) { attempt.count = 0; attempt.resetAt = now + 10 * 60 * 1000; }
-    if (attempt.count >= 10) return res.status(429).json({ error: 'Too many pairing attempts. Wait 10 minutes and try again.' });
-    if (String(req.body?.pin || '') !== pin) {
-      attempt.count += 1;
-      pairingAttempts.set(ip, attempt);
-      return res.status(401).json({ error: 'Incorrect pairing PIN' });
-    }
-    pairingAttempts.delete(ip);
-    const token = crypto.randomBytes(32).toString('hex');
-    tokens.set(token, now + TOKEN_TTL_MS);
-    res.json({ token, status: remoteStatus });
-  });
-  serverApp.use('/api', (req, res, next) => {
-    // Video elements cannot attach Authorization headers, so allow query tokens only on media GETs.
-    const headerToken = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
-    const mediaQueryToken = req.method === 'GET' && /^\/media\//.test(req.path) ? String(req.query.token || '') : '';
-    const token = headerToken || mediaQueryToken;
-    const expiresAt = token ? tokens.get(token) : null;
-    if (!expiresAt || expiresAt < Date.now()) {
-      if (token) tokens.delete(token);
-      return res.status(401).json({ error: 'Pair this phone with the desktop PIN first.' });
-    }
-    next();
-  });
-  // Shared media library: folders are chosen locally on the desktop; only indexed video files are exposed to paired devices.
-  const sharedVideoExtensions = new Set(['.mkv','.mp4','.m4v','.webm','.mov','.avi','.mpg','.mpeg','.ts','.m2ts','.ogv','.3gp','.wmv','.flv']);
-  function refreshSharedMediaIndex() {
-    sharedMediaFiles.clear();
-    const seen = new Set();
-    const walk = (folder, depth = 0) => {
-      if (depth > 8) return;
-      let entries;
-      try { entries = fs.readdirSync(folder, { withFileTypes: true }); } catch { return; }
-      for (const entry of entries) {
-        if (entry.name.startsWith('.')) continue;
-        const fullPath = path.resolve(folder, entry.name);
-        if (entry.isDirectory()) { walk(fullPath, depth + 1); continue; }
-        if (!entry.isFile() || !sharedVideoExtensions.has(path.extname(entry.name).toLowerCase()) || seen.has(fullPath)) continue;
-        seen.add(fullPath);
-        const id = crypto.createHash('sha256').update(fullPath).digest('hex').slice(0, 24);
-        try {
-          const stat = fs.statSync(fullPath);
-          sharedMediaFiles.set(id, { id, path: fullPath, name: entry.name, size: stat.size, modified: stat.mtimeMs });
-        } catch {}
-      }
-    };
-    for (const folder of sharedMediaFolders) walk(folder);
-    return [...sharedMediaFiles.values()].map(({ id, name, size, modified }) => ({ id, name, size, modified }));
-  }
-  serverApp.get('/library', (_req, res) => res.sendFile(path.join(__dirname, 'media.html')));
-  serverApp.get('/api/library', (_req, res) => res.json({ folders: sharedMediaFolders.length, files: refreshSharedMediaIndex() }));
-  serverApp.post('/api/library/select', async (_req, res) => {
-    if (!mainWindow || mainWindow.isDestroyed()) return res.status(503).json({ error: 'Open HomeFlix on the desktop first.' });
-    try {
-      const picked = await dialog.showOpenDialog(mainWindow, { title: 'Choose folders to share with HomeFlix devices', properties: ['openDirectory', 'multiSelections'] });
-      if (picked.canceled || !picked.filePaths.length) return res.json({ canceled: true, files: refreshSharedMediaIndex() });
-      sharedMediaFolders = [...new Set([...sharedMediaFolders, ...picked.filePaths.map(p => path.resolve(p))])];
-      return res.json({ canceled: false, folders: sharedMediaFolders.length, files: refreshSharedMediaIndex() });
-    } catch (error) { return res.status(500).json({ error: error.message || 'Could not choose media folders.' }); }
-  });
-  serverApp.post('/api/library/clear', (_req, res) => {
-    sharedMediaFolders = [];
-    sharedMediaFiles.clear();
-    return res.json({ ok: true, files: [] });
-  });
-  serverApp.get('/api/media/:id', (req, res) => {
-    const item = sharedMediaFiles.get(String(req.params.id || ''));
-    if (!item) return res.status(404).json({ error: 'Media item not found. Refresh the library and try again.' });
-    try {
-      if (!fs.existsSync(item.path) || !fs.statSync(item.path).isFile()) return res.status(404).json({ error: 'The media file is no longer available.' });
-      res.setHeader('Cache-Control', 'no-store');
-      res.setHeader('Accept-Ranges', 'bytes');
-      return res.sendFile(item.path, { acceptRanges: true, cacheControl: false, dotfiles: 'deny' }, error => {
-        if (error && !res.headersSent) res.status(error.statusCode || 500).end();
-      });
-    } catch { return res.status(404).json({ error: 'The media file is no longer available.' }); }
-  });
-  serverApp.get('/api/status', (_req, res) => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('homeflix:remote-command', { action: 'status' });
-      setTimeout(() => res.json(remoteStatus), 120);
-    } else {
-      res.json(remoteStatus);
-    }
-  });
-  serverApp.post('/api/command', async (req, res) => {
-    const allowed = new Set(['toggle', 'play', 'pause', 'seek', 'volume', 'mute', 'next', 'previous', 'fullscreen', 'status']);
-    const action = String(req.body?.action || '');
-    if (!allowed.has(action)) return res.status(400).json({ error: 'Unsupported command' });
-    if (!mainWindow || mainWindow.isDestroyed()) return res.status(503).json({ error: 'HomeFlix desktop is not available.' });
-    const rawValue = Number(req.body?.value);
-    const safeValue = Number.isFinite(rawValue) ? Math.max(-86400, Math.min(86400, rawValue)) : 0;
-    const script = `(() => {
-      const video = document.querySelector('#cyber-video, video');
-      const action = ${JSON.stringify(action)};
-      const value = ${JSON.stringify(safeValue)};
-      if (action === 'status') {
-        if (video) window.homeflixDesktop?.sendRemoteStatus?.({
-          title: (document.querySelector('#current-title, [data-media-title], .player-title')?.textContent || document.title || 'HomeFlix').trim().slice(0,128),
-          playing: !video.paused && !video.ended,
-          currentTime: Number.isFinite(video.currentTime) ? video.currentTime : 0,
-          duration: Number.isFinite(video.duration) ? video.duration : 0,
-          volume: video.muted ? 0 : video.volume
-        });
-        return;
-      }
-      if (!video) throw new Error('No video is currently loaded in HomeFlix.');
-      switch (action) {
-        case 'toggle': video.paused ? video.play() : video.pause(); break;
-        case 'play': video.play(); break;
-        case 'pause': video.pause(); break;
-        case 'seek': video.currentTime = Math.max(0, Math.min(Number.isFinite(video.duration) ? video.duration : Infinity, video.currentTime + value)); break;
-        case 'volume': video.volume = Math.max(0, Math.min(1, value)); video.muted = false; break;
-        case 'mute': video.muted = !video.muted; break;
-        case 'fullscreen': (video.requestFullscreen ? video.requestFullscreen() : document.documentElement.requestFullscreen?.()); break;
-        case 'next': {
-          const button = [...document.querySelectorAll('button')].find(b => /next|skip/i.test((b.getAttribute('aria-label') || '') + ' ' + (b.title || '') + ' ' + b.innerText));
-          if (button) button.click(); else throw new Error('No Next control was found in the current player.');
-          break;
-        }
-        case 'previous': {
-          const button = [...document.querySelectorAll('button')].find(b => /previous|back/i.test((b.getAttribute('aria-label') || '') + ' ' + (b.title || '') + ' ' + b.innerText));
-          if (button) button.click(); else video.currentTime = 0;
-          break;
-        }
-      }
-    })()`;
-    try {
-      await mainWindow.webContents.executeJavaScript(script, true);
-      res.json({ ok: true });
-    } catch (error) {
-      res.status(400).json({ error: error.message || 'Could not control the current player.' });
-    }
-  });
-  remoteServer = serverApp.listen(REMOTE_PORT, '0.0.0.0', () => {
-    console.log(`HomeFlix phone remote listening on port ${REMOTE_PORT}`);
-  });
-  remoteServer.on('error', error => console.error('Remote server failed:', error.message));
-}
-
 
 function cleanPresenceText(value, fallback, max = 128) {
   const text = String(value || '').replace(/\s+/g, ' ').trim();
@@ -468,83 +218,6 @@ function writeAppSettings(patch) {
   fs.writeFileSync(hardwareSettingsPath, JSON.stringify(next, null, 2), 'utf8');
   return next;
 }
-function setLaunchAtLogin(enabled) {
-  const value = !!enabled;
-  app.setLoginItemSettings({ openAtLogin: value, openAsHidden: false, args: value ? ['--hidden'] : [] });
-  writeAppSettings({ launchAtLogin: value });
-  return value;
-}
-function showMainWindow() {
-  if (!mainWindow || mainWindow.isDestroyed()) createWindow();
-  if (mainWindow) { if (mainWindow.isMinimized()) mainWindow.restore(); mainWindow.show(); mainWindow.focus(); }
-}
-function createTray() {
-  if (tray) return true;
-
-  // Resolve assets from the packaged app as well as the source checkout.
-  const buildDir = path.join(app.getAppPath(), 'build');
-  const iconPaths = [
-    path.join(buildDir, 'homeflix-icon.png'),
-    path.join(buildDir, 'homeflix.ico'),
-    path.join(__dirname, '..', 'build', 'homeflix-icon.png'),
-    path.join(__dirname, '..', 'build', 'homeflix.ico')
-  ];
-  let icon = nativeImage.createEmpty();
-  for (const iconPath of [...new Set(iconPaths)]) {
-    try {
-      if (!fs.existsSync(iconPath)) continue;
-      const candidate = nativeImage.createFromPath(iconPath);
-      if (!candidate.isEmpty()) { icon = candidate; break; }
-    } catch (error) {
-      console.warn('Could not load HomeFlix tray icon from', iconPath, error?.message || error);
-    }
-  }
-
-  // The SVG is source-controlled, unlike generated PNG/ICO assets that may be absent
-  // in a development checkout. Use it as a last-resort tray image.
-  if (icon.isEmpty()) {
-    const svgPath = path.join(buildDir, 'homeflix-icon.svg');
-    try {
-      if (fs.existsSync(svgPath)) {
-        const svg = fs.readFileSync(svgPath, 'utf8');
-        icon = nativeImage.createFromDataURL('data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64'));
-      }
-    } catch (error) {
-      console.warn('Could not create HomeFlix tray icon from SVG:', error?.message || error);
-    }
-  }
-
-  if (icon.isEmpty()) {
-    console.error('HomeFlix tray icon could not be loaded. Check build/homeflix-icon.svg and run npm run make-icon.');
-    return false;
-  }
-  if (process.platform === 'win32') icon = icon.resize({ width: 16, height: 16 });
-  try {
-    tray = new Tray(icon);
-    tray.setToolTip('HomeFlix Cyber Node — background service running');
-    const refreshMenu = () => {
-      if (!tray) return;
-      tray.setContextMenu(Menu.buildFromTemplate([
-        { label: 'Open HomeFlix', click: showMainWindow },
-        { label: 'HomeFlix background service: running', enabled: false },
-        { type: 'separator' },
-        { label: 'Launch at Windows sign-in', type: 'checkbox', checked: !!readAppSettings().launchAtLogin, click: item => { setLaunchAtLogin(item.checked); refreshMenu(); } },
-        { type: 'separator' },
-        { label: 'Quit HomeFlix completely', click: () => { isQuitting = true; app.quit(); } }
-      ]));
-    };
-    refreshMenu();
-    tray.on('double-click', showMainWindow);
-    tray.on('click', showMainWindow);
-    tray.on('right-click', refreshMenu);
-    tray.on('destroyed', () => { tray = null; });
-    return true;
-  } catch (error) {
-    console.error('Could not create HomeFlix system tray icon:', error?.stack || error);
-    tray = null;
-    return false;
-  }
-}
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1440, height: 920, minWidth: 900, minHeight: 620,
@@ -583,11 +256,9 @@ app.whenReady().then(() => {
   if (!hasSingleInstanceLock) return;
   app.setAppUserModelId(APP_ID);
   setupAutoUpdates({ app, dialog, BrowserWindow });
-  backgroundModeEnabled = false;
   // Disable legacy launch-at-login settings from older HomeFlix installs.
   try { app.setLoginItemSettings({ openAtLogin: false, openAsHidden: false, args: [] }); } catch (error) { console.warn('Could not disable HomeFlix launch-at-login:', error.message); }
   writeAppSettings({ backgroundMode: false, launchAtLogin: false });
-  const launchHidden = process.argv.includes('--hidden');
   const startupFiles = process.argv.slice(1).filter(arg => typeof arg === 'string' && !arg.startsWith('--') && SUPPORTED_MEDIA_EXTENSIONS.has(path.extname(arg).toLowerCase()) && fs.existsSync(arg));
   if (startupFiles.length) pendingOpenFiles.push(...startupFiles);
   protocol.handle('homeflix-media', request => {
@@ -656,10 +327,8 @@ app.whenReady().then(() => {
       'Accept-Ranges': 'none'
     }});
   });
-  ipcMain.handle('homeflix:remote-info', () => getRemoteInfo());
   ipcMain.handle('homeflix:get-background-services', () => ({ backgroundMode: false, launchAtLogin: false, remoteControl: false, discordPresence: !!discordClient, trayAvailable: false }));
   ipcMain.handle('homeflix:set-background-mode', (_event, _enabled) => {
-    backgroundModeEnabled = false;
     writeAppSettings({ backgroundMode: false });
     return { enabled: false, restartRequired: false };
   });
@@ -668,7 +337,6 @@ app.whenReady().then(() => {
     writeAppSettings({ launchAtLogin: false });
     return { enabled: false };
   });
-  ipcMain.handle('homeflix:show-window', () => { showMainWindow(); return true; });
   ipcMain.handle('homeflix:get-hardware-acceleration', () => ({ enabled: hardwareAccelerationEnabled }));
   ipcMain.handle('homeflix:set-hardware-acceleration', (_event, enabled) => {
     if (typeof enabled !== 'boolean') throw new Error('Hardware acceleration setting must be on or off.');
@@ -746,10 +414,10 @@ app.whenReady().then(() => {
   });
   startDiscordRPC();
   ipcMain.on('homeflix:remote-status', (_event, status) => { if (status && typeof status === 'object') remoteStatus = { ...remoteStatus, ...status }; });
-  if (!launchHidden) createWindow();
+  createWindow();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
-app.on('window-all-closed', () => { if (process.platform !== 'darwin' && (isQuitting || !backgroundModeEnabled)) app.quit(); });
+app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('before-quit', () => {
   isQuitting = true;
   app.isQuitting = true;
@@ -760,5 +428,4 @@ app.on('before-quit', () => {
   remoteStreamSources.clear();
   localMediaPaths.clear();
   if (discordClient) { try { discordClient.destroy(); } catch (_) {} }
-  if (remoteServer) remoteServer.close();
 });
