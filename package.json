@@ -42,7 +42,8 @@
       "build/**/*",
       "package.json",
       "renderer.js",
-      "mobile/**/*"
+      "mobile/**/*",
+      "kstream-browse.js"
     ],
     "asar": true,
     "win": {
