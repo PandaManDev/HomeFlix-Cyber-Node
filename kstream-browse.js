@@ -15,7 +15,7 @@
     { title: 'The Fix', meta: 'Movie · 2026 · Featured pick', url: HOME, poster: 'https://cineamo-tmdb.b-cdn.net/t/p/w780/jlP8XDjZN89GrpM3je5Uf8Grqx8.jpg?width=640' },
     { title: 'Runner', meta: 'Movie · 2026 · Featured pick', url: HOME, poster: 'https://cdn.kinocheck.com/i/w%3D650/f187obcq8t.jpg' },
     { title: 'Animals', meta: 'Movie · 2026 · Featured pick', url: HOME, poster: 'https://mr.comingsoon.it/imgdb/PrimoPiano/impaginate/animals_poster.jpg' },
-    { title: 'Resident Dead', meta: 'Movie · 2026 · Featured pick', url: HOME, poster: '' },
+    { title: 'Resident Dead', meta: 'Movie · 2026 · Featured pick', url: HOME, poster: 'https://cdn.moviefone.com/image-assets/1712451/yX8ziNTZ5aOszJ3l4R3BlT2gBIa.jpg?d=480x720&q=50' },
     { title: 'Supernatural', meta: 'Show · 2005', url: 'https://kdesa.stream/media/tmdb-tv-1622-supernatural/6904/163114', poster: 'https://image.tmdb.org/t/p/w500/fg3MNPPng5PEV2Em8oiWfo1SN60.jpg' },
     { title: 'Avengers: Endgame', meta: 'Movie · 2019 · Featured pick', url: HOME, poster: 'https://image.tmdb.org/t/p/w500/or06FN3Dka5tukK1e9sl16pB3iy.jpg' },
     { title: 'Spider-Man: Across the Spider-Verse', meta: 'Movie · 2023 · Featured pick', url: HOME, poster: 'https://image.tmdb.org/t/p/w500/8Vt6mWEReuy4Of61Lnj5Xj704m8.jpg' },
