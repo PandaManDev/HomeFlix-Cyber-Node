@@ -566,7 +566,7 @@ function createWindow() {
     const allowed = url.startsWith(WEB_URL) || url.startsWith('file://');
     if (!allowed) { event.preventDefault(); shell.openExternal(url); }
   });
-  mainWindow.webContents.on('did-finish-load', () => { installDiscordPageBridge(); installRemotePairingPanel(); flushOpenFiles(); });
+  mainWindow.webContents.on('did-finish-load', () => { installDiscordPageBridge(); flushOpenFiles(); });
   mainWindow.loadURL(WEB_URL);
   mainWindow.webContents.on('did-fail-load', (_event, code, description, validatedURL, isMainFrame) => {
     if (isMainFrame && !validatedURL.startsWith('file://') && code !== -3) {
@@ -574,11 +574,8 @@ function createWindow() {
       mainWindow.loadFile(path.join(__dirname, '..', 'index.html'));
     }
   });
-  mainWindow.on('close', event => {
-    if (!isQuitting && backgroundModeEnabled) {
-      event.preventDefault();
-      mainWindow.hide();
-    }
+  mainWindow.on('close', () => {
+    isQuitting = true;
   });
   mainWindow.on('closed', () => { mainWindow = null; });
 }
@@ -586,8 +583,10 @@ app.whenReady().then(() => {
   if (!hasSingleInstanceLock) return;
   app.setAppUserModelId(APP_ID);
   setupAutoUpdates({ app, dialog, BrowserWindow });
-  backgroundModeEnabled = readAppSettings().backgroundMode !== false;
-  createTray();
+  backgroundModeEnabled = false;
+  // Disable legacy launch-at-login settings from older HomeFlix installs.
+  try { app.setLoginItemSettings({ openAtLogin: false, openAsHidden: false, args: [] }); } catch (error) { console.warn('Could not disable HomeFlix launch-at-login:', error.message); }
+  writeAppSettings({ backgroundMode: false, launchAtLogin: false });
   const launchHidden = process.argv.includes('--hidden');
   const startupFiles = process.argv.slice(1).filter(arg => typeof arg === 'string' && !arg.startsWith('--') && SUPPORTED_MEDIA_EXTENSIONS.has(path.extname(arg).toLowerCase()) && fs.existsSync(arg));
   if (startupFiles.length) pendingOpenFiles.push(...startupFiles);
@@ -658,19 +657,16 @@ app.whenReady().then(() => {
     }});
   });
   ipcMain.handle('homeflix:remote-info', () => getRemoteInfo());
-  ipcMain.handle('homeflix:get-background-services', () => {
-    const saved = readAppSettings();
-    return { backgroundMode: saved.backgroundMode !== false, launchAtLogin: !!saved.launchAtLogin, remoteControl: !!remoteServer, discordPresence: !!discordClient, trayAvailable: !!tray };
+  ipcMain.handle('homeflix:get-background-services', () => ({ backgroundMode: false, launchAtLogin: false, remoteControl: false, discordPresence: !!discordClient, trayAvailable: false }));
+  ipcMain.handle('homeflix:set-background-mode', (_event, _enabled) => {
+    backgroundModeEnabled = false;
+    writeAppSettings({ backgroundMode: false });
+    return { enabled: false, restartRequired: false };
   });
-  ipcMain.handle('homeflix:set-background-mode', (_event, enabled) => {
-    if (typeof enabled !== 'boolean') throw new Error('Background mode must be enabled or disabled.');
-    backgroundModeEnabled = enabled;
-    writeAppSettings({ backgroundMode: enabled });
-    return { enabled, restartRequired: false };
-  });
-  ipcMain.handle('homeflix:set-launch-at-login', (_event, enabled) => {
-    if (typeof enabled !== 'boolean') throw new Error('Launch-at-login must be enabled or disabled.');
-    return { enabled: setLaunchAtLogin(enabled) };
+  ipcMain.handle('homeflix:set-launch-at-login', (_event, _enabled) => {
+    try { app.setLoginItemSettings({ openAtLogin: false, openAsHidden: false, args: [] }); } catch (_) {}
+    writeAppSettings({ launchAtLogin: false });
+    return { enabled: false };
   });
   ipcMain.handle('homeflix:show-window', () => { showMainWindow(); return true; });
   ipcMain.handle('homeflix:get-hardware-acceleration', () => ({ enabled: hardwareAccelerationEnabled }));
@@ -750,7 +746,6 @@ app.whenReady().then(() => {
   });
   startDiscordRPC();
   ipcMain.on('homeflix:remote-status', (_event, status) => { if (status && typeof status === 'object') remoteStatus = { ...remoteStatus, ...status }; });
-  startRemoteServer();
   if (!launchHidden) createWindow();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
