@@ -156,7 +156,7 @@ function startRemoteServer() {
     res.setHeader('Cache-Control', 'no-store');
     const presence = req.body?.presence;
     if (!presence || typeof presence !== 'object') return res.status(400).json({ error: 'Presence is required' });
-    if (presence.clear) clearDiscordPresence();
+    if (presence.clear || presence.idle) setIdleDiscordPresence();
     else updateDiscordPresence({
       title: cleanPresenceText(presence.title, 'HomeFlix Cyber Node'),
       playing: Boolean(presence.playing),
@@ -177,7 +177,7 @@ function startRemoteServer() {
     if (req.body?.action === 'ping') return res.json({ ok: true, connected: discordReady });
     const presence = req.body?.presence;
     if (!presence || typeof presence !== 'object') return res.status(400).json({ error: 'Presence is required' });
-    if (presence.clear) clearDiscordPresence();
+    if (presence.clear || presence.idle) setIdleDiscordPresence();
     else updateDiscordPresence({
       title: cleanPresenceText(presence.title, 'HomeFlix Cyber Node'),
       playing: Boolean(presence.playing),
@@ -355,6 +355,7 @@ async function startDiscordRPC() {
       discordReady = true;
       console.log('HomeFlix Discord Rich Presence connected.');
       if (remoteStatus.title && remoteStatus.title !== 'HomeFlix') updateDiscordPresence(remoteStatus, true);
+      else setIdleDiscordPresence();
     });
     discordClient.on('disconnected', () => {
       discordReady = false;
@@ -372,8 +373,25 @@ async function startDiscordRPC() {
   }
 }
 
+function setIdleDiscordPresence() {
+  remoteStatus = { title: 'HomeFlix Cyber Node', playing: false, currentTime: 0, duration: 0, idle: true };
+  if (!discordReady || !discordClient) return;
+  const key = 'homeflix-idle';
+  if (lastDiscordKey === key) return;
+  lastDiscordKey = key;
+  lastDiscordUpdate = Date.now();
+  discordClient.setActivity({
+    details: 'HomeFlix Cyber Node',
+    state: 'Idling',
+    largeImageKey: 'homeflix',
+    largeImageText: 'HomeFlix Cyber Node',
+    instance: false
+  }).catch(error => console.warn('Could not update Discord Rich Presence:', error.message));
+}
+
 function updateDiscordPresence(presence, force = false) {
   if (!presence || typeof presence !== 'object') return;
+  if (presence.idle) { setIdleDiscordPresence(); return; }
   const title = cleanPresenceText(presence.title, 'HomeFlix Cyber Node');
   const playing = Boolean(presence.playing);
   const currentTime = Math.max(0, Number(presence.currentTime) || 0);
@@ -415,7 +433,7 @@ function installDiscordPageBridge() {
       const titleNode = document.querySelector('#current-title, [data-media-title], .player-title');
       const title = (titleNode && titleNode.textContent || document.title || 'HomeFlix Cyber Node').trim();
       if (clear || !video || !video.currentSrc) {
-        api.sendDiscordPresence({ clear: true });
+        api.sendDiscordPresence({ idle: true });
         return;
       }
       api.sendDiscordPresence({
@@ -745,7 +763,7 @@ app.whenReady().then(() => {
     return job;
   });
   ipcMain.on('homeflix:discord-presence', (_event, presence) => {
-    if (presence && presence.clear) clearDiscordPresence();
+    if (presence && presence.clear) setIdleDiscordPresence();
     else updateDiscordPresence(presence);
   });
   startDiscordRPC();
