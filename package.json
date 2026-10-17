@@ -2,7 +2,10 @@
   "name": "homeflix-cyber-node",
   "version": "4.8.1",
   "description": "HomeFlix Cyber Node personal media library and desktop player",
-  "author": "PandaManDev",
+  "author": {
+    "name": "PandaManDev",
+    "email": "jacobhuskylover@gmail.com"
+  },
   "main": "electron/main.cjs",
   "private": true,
   "scripts": {
