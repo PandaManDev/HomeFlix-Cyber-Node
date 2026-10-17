@@ -1350,6 +1350,7 @@ const LIBRARY_STORAGE_KEY = 'homeflix-library-v1';
       const getKey = () => currentTitle().toLowerCase();
       const toast = msg => { if(typeof window.showToast==='function') window.showToast(msg); else { const old=$('hf-upgrade-toast'); if(old)old.remove(); const n=document.createElement('div');n.id='hf-upgrade-toast';n.textContent=msg;n.style.cssText='position:fixed;z-index:99999;bottom:75px;right:18px;padding:12px 16px;border:1px solid #22d3ee;border-radius:10px;background:#0b1220;color:white;font:13px Inter,sans-serif;box-shadow:0 8px 30px #0008';document.body.append(n);setTimeout(()=>n.remove(),2600); } };
       const fmt = n => { n=Math.max(0,Math.floor(Number(n)||0)); return Math.floor(n/60)+':'+String(n%60).padStart(2,'0'); };
+      function render() {
       $('hf-profile').innerHTML=''; db.profiles.forEach(name=>{const o=document.createElement('option');o.value=name;o.textContent=name;$('hf-profile').append(o)});$('hf-profile').value=db.active;
         const p=profileData(), title=currentTitle(), key=getKey();
         $('hf-current-title').textContent=title;
