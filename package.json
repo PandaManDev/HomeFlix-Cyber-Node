@@ -14,7 +14,6 @@
     "preview:cloudflare": "npx wrangler dev --config wrangler.jsonc"
   },
   "dependencies": {
-    "express": "^4.21.2",
     "discord-rpc": "^4.0.1",
     "ffmpeg-static": "^5.2.0",
     "electron-updater": "^6.6.2"
