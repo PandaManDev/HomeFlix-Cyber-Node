@@ -303,8 +303,17 @@ const LIBRARY_STORAGE_KEY = 'homeflix-library-v1';
         ['pointerdown', 'keydown', 'touchstart'].forEach((eventName) => {
             window.addEventListener(eventName, resumeAudioEngine, { passive: true });
         });
-        video.addEventListener('play', resumeAudioEngine);
-        video.addEventListener('playing', resumeAudioEngine);
+        video.addEventListener('play', () => {
+            resumeAudioEngine();
+        });
+        video.addEventListener('playing', () => {
+            resumeAudioEngine();
+            // Retry after Chromium has fully entered playback; some focus changes
+            // can suspend the context between the play request and the playing event.
+            if (state.audioContext && state.audioContext.state !== 'running') {
+                state.audioContext.resume().catch((err) => console.warn('HomeFlix audio resume failed:', err));
+            }
+        });
         video.addEventListener('volumechange', () => {
             if (video.muted) return;
             resumeAudioEngine();
@@ -331,6 +340,10 @@ const LIBRARY_STORAGE_KEY = 'homeflix-library-v1';
                 state.gainNode.connect(state.analyser);
                 state.analyser.connect(state.audioContext.destination);
                 state.gainNode.gain.value = parseFloat(volumeSlider.value);
+                // The Web Audio gain node owns player volume; keep the media element's
+                // native volume at full level so a previous remote-volume command cannot
+                // leave the Web Audio output silently multiplied by zero.
+                video.volume = 1;
                 resumeAudioEngine();
             } catch (e) {
                 console.warn('Web Audio API initialization note:', e);
@@ -959,6 +972,8 @@ const LIBRARY_STORAGE_KEY = 'homeflix-library-v1';
             const val = parseFloat(e.target.value);
             if (state.gainNode) {
                 state.gainNode.gain.value = val;
+                // Do not let a stale native volume of 0 mute the Web Audio output.
+                video.volume = 1;
             } else {
                 video.volume = Math.min(1, val);
             }
