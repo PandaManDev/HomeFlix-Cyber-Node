@@ -1443,7 +1443,7 @@ function openImageViewer(item) {
 /* HomeFlix Advanced Settings: saved preferences and honest runtime diagnostics. */
 (function homeflixAdvancedSettings(){
   const KEY='homeflix-advanced-settings-v1';
-  const defaults={reducedMotion:false,crt:!document.body.classList.contains('crt-off'),rememberVolume:true,audioMonitor:true,autoplayNext:false};
+  const defaults={reducedMotion:false,crt:!document.body.classList.contains('crt-off'),rememberVolume:true,audioMonitor:true,autoplayNext:false,playbackSpeed:1,startMuted:false};
   let audioInterruptions=0, lastAudioEvent=null, audioListenersAttached=false;
   const read=()=>{try{return {...defaults,...JSON.parse(localStorage.getItem(KEY)||'{}')}}catch{return {...defaults}}};
   const write=v=>{try{const serialized=JSON.stringify(v);localStorage.setItem(KEY,serialized);return localStorage.getItem(KEY)===serialized}catch{return false}};
@@ -1454,6 +1454,7 @@ function openImageViewer(item) {
     try{localStorage.setItem('homeflix.crtOff',JSON.stringify(!v.crt))}catch{}
     const crtToggle=$('hf-toggle-crt');
     if(crtToggle) crtToggle.setAttribute('aria-pressed',String(!!v.crt));
+    const video=document.querySelector('video');if(video){const speed=Number(v.playbackSpeed);video.playbackRate=[0.5,0.75,1,1.25,1.5,1.75,2].includes(speed)?speed:1;}
   }
   function attachAudioMonitor(){
     if(audioListenersAttached)return;
@@ -1482,11 +1483,12 @@ function openImageViewer(item) {
   }
   function syncControls(){
     const v=read();
-    for(const [id,key] of [['hf-setting-reduced-motion','reducedMotion'],['hf-setting-crt','crt'],['hf-setting-volume-memory','rememberVolume'],['hf-setting-audio-monitor','audioMonitor'],['hf-setting-autoplay','autoplayNext']]){const el=$(id);if(el)el.checked=!!v[key];}
+    for(const [id,key] of [['hf-setting-reduced-motion','reducedMotion'],['hf-setting-crt','crt'],['hf-setting-volume-memory','rememberVolume'],['hf-setting-audio-monitor','audioMonitor'],['hf-setting-autoplay','autoplayNext'],['hf-setting-start-muted','startMuted']]){const el=$(id);if(el)el.checked=!!v[key];}
+    const speed=$('hf-setting-speed');if(speed)speed.value=String(v.playbackSpeed||1);
     apply(v);attachAudioMonitor();paintDiagnostics();
   }
   function saveControls(){
-    const v={reducedMotion:!!$('hf-setting-reduced-motion')?.checked,crt:!!$('hf-setting-crt')?.checked,rememberVolume:!!$('hf-setting-volume-memory')?.checked,audioMonitor:!!$('hf-setting-audio-monitor')?.checked,autoplayNext:!!$('hf-setting-autoplay')?.checked};
+    const v={reducedMotion:!!$('hf-setting-reduced-motion')?.checked,crt:!!$('hf-setting-crt')?.checked,rememberVolume:!!$('hf-setting-volume-memory')?.checked,audioMonitor:!!$('hf-setting-audio-monitor')?.checked,autoplayNext:!!$('hf-setting-autoplay')?.checked,playbackSpeed:Number($('hf-setting-speed')?.value||1),startMuted:!!$('hf-setting-start-muted')?.checked};
     if(!write(v)){if(typeof showToast==='function')showToast('Could not save advanced settings in local storage.');return;}
     apply(v);paintDiagnostics();
     if(typeof showToast==='function')showToast('Advanced preferences saved.');
@@ -1510,13 +1512,14 @@ function openImageViewer(item) {
     run?.addEventListener('click',()=>{attachAudioMonitor();paintDiagnostics();if(typeof showToast==='function')showToast('Diagnostics refreshed.');});
     exp?.addEventListener('click',exportDiagnostics);
     reset?.addEventListener('click',()=>{write({...defaults});syncControls();if(typeof showToast==='function')showToast('Advanced preferences reset.');});
-    for(const id of ['hf-setting-reduced-motion','hf-setting-crt','hf-setting-volume-memory','hf-setting-audio-monitor','hf-setting-autoplay'])$(id)?.addEventListener('change',saveControls);
+    for(const id of ['hf-setting-reduced-motion','hf-setting-crt','hf-setting-volume-memory','hf-setting-audio-monitor','hf-setting-autoplay','hf-setting-speed','hf-setting-start-muted'])$(id)?.addEventListener('change',saveControls);
     const settings=$('library-settings-modal');
     if(settings)new MutationObserver(()=>{if(!settings.classList.contains('hidden'))syncControls();}).observe(settings,{attributes:true,attributeFilter:['class']});
     const video=document.querySelector('video');
     if(video){
       const restoreVolume=()=>{const prefs=read();if(!prefs.rememberVolume)return;try{const saved=Number(localStorage.getItem('homeflix-preferred-volume'));if(Number.isFinite(saved)&&saved>=0&&saved<=1)video.volume=saved;}catch{}};
-      restoreVolume();video.addEventListener('loadedmetadata',restoreVolume);
+      const applyPlaybackPrefs=()=>{const prefs=read();const speed=Number(prefs.playbackSpeed||1);video.playbackRate=[0.5,0.75,1,1.25,1.5,1.75,2].includes(speed)?speed:1;if(prefs.startMuted)video.muted=true;};
+      restoreVolume();applyPlaybackPrefs();video.addEventListener('loadedmetadata',()=>{restoreVolume();applyPlaybackPrefs();});
       video.addEventListener('volumechange',()=>{if(!read().rememberVolume)return;try{localStorage.setItem('homeflix-preferred-volume',String(video.volume));}catch{}});
     }
     syncControls();setInterval(()=>{if(settings&&!settings.classList.contains('hidden'))paintDiagnostics()},2000);
