@@ -1438,3 +1438,69 @@ function openImageViewer(item) {
       document.addEventListener('keydown',event=>{
         if(event.key==='Escape' && document.getElementById('hf-photo-viewer')?.classList.contains('open')) closePhotoViewer();
       });
+
+
+/* HomeFlix Advanced Settings: saved preferences and honest runtime diagnostics. */
+(function homeflixAdvancedSettings(){
+  const KEY='homeflix-advanced-settings-v1';
+  const defaults={reducedMotion:false,crt:true,rememberVolume:true,audioMonitor:true,autoplayNext:false};
+  let audioInterruptions=0, lastAudioEvent=null, audioListenersAttached=false;
+  const read=()=>{try{return {...defaults,...JSON.parse(localStorage.getItem(KEY)||'{}')}}catch{return {...defaults}}};
+  const write=v=>{try{localStorage.setItem(KEY,JSON.stringify(v));return true}catch{return false}};
+  const $=id=>document.getElementById(id);
+  function apply(v){
+    document.body.classList.toggle('hf-reduced-motion',!!v.reducedMotion);
+    document.body.classList.toggle('crt-off',!v.crt);
+    try{localStorage.setItem('homeflix.crtOff',JSON.stringify(!v.crt))}catch{}
+    const crtToggle=$('hf-toggle-crt');
+    if(crtToggle) crtToggle.setAttribute('aria-pressed',String(!!v.crt));
+  }
+  function attachAudioMonitor(){
+    if(audioListenersAttached)return;
+    const video=document.querySelector('video'); if(!video)return;
+    audioListenersAttached=true;
+    const note=(kind)=>{const v=read();if(!v.audioMonitor)return;audioInterruptions++;lastAudioEvent={kind,time:new Date().toISOString(),currentTime:Number(video.currentTime)||0,networkState:video.networkState,readyState:video.readyState};paintDiagnostics();};
+    video.addEventListener('waiting',()=>{if(!video.paused)note('waiting');});
+    video.addEventListener('stalled',()=>note('stalled'));
+    video.addEventListener('error',()=>note('media-error'));
+    video.addEventListener('playing',paintDiagnostics);
+    video.addEventListener('loadedmetadata',paintDiagnostics);
+  }
+  function paintDiagnostics(){
+    const video=document.querySelector('video');
+    const memory=$('hf-setting-memory'),playback=$('hf-setting-playback'),events=$('hf-setting-audio-events'),gpu=$('hf-setting-gpu'),note=$('hf-setting-diagnostics-note');
+    if(memory){const m=performance&&performance.memory;memory.textContent=m&&Number.isFinite(m.usedJSHeapSize)?(m.usedJSHeapSize/1048576).toFixed(1)+' MB JS heap':'Not exposed by this runtime';}
+    if(playback){if(!video||!video.currentSrc)playback.textContent='No media loaded';else if(video.error)playback.textContent='Playback error ('+video.error.code+')';else playback.textContent=(video.paused?'Paused':'Playing')+(Number.isFinite(video.videoWidth)&&video.videoWidth?' · '+video.videoWidth+'×'+video.videoHeight:'');}
+    if(events)events.textContent=audioInterruptions+' detected'+(lastAudioEvent?' · last: '+lastAudioEvent.kind:'');
+    if(gpu){const t=$('hardware-acceleration');gpu.textContent=t?(t.disabled?'Desktop-only control':(t.checked?'Enabled (restart may be required)':'Disabled (restart may be required)')):'See hardware setting above';}
+    if(note)note.textContent=lastAudioEvent?'Audio events are diagnostic signals, not proof of audible dropouts. Last event: '+lastAudioEvent.kind+' at '+lastAudioEvent.time+'. CPU/GPU decoder details are not exposed by every runtime.':'Live stats are best-effort. CPU usage and active GPU decoder details are not exposed by every runtime.';
+  }
+  function syncControls(){
+    const v=read();
+    for(const [id,key] of [['hf-setting-reduced-motion','reducedMotion'],['hf-setting-crt','crt'],['hf-setting-volume-memory','rememberVolume'],['hf-setting-audio-monitor','audioMonitor'],['hf-setting-autoplay','autoplayNext']]){const el=$(id);if(el)el.checked=!!v[key];}
+    apply(v);attachAudioMonitor();paintDiagnostics();
+  }
+  function saveControls(){
+    const v={reducedMotion:!!$('hf-setting-reduced-motion')?.checked,crt:!!$('hf-setting-crt')?.checked,rememberVolume:!!$('hf-setting-volume-memory')?.checked,audioMonitor:!!$('hf-setting-audio-monitor')?.checked,autoplayNext:!!$('hf-setting-autoplay')?.checked};
+    if(!write(v)){if(typeof showToast==='function')showToast('Could not save advanced settings in local storage.');return;}
+    apply(v);paintDiagnostics();
+    if(typeof showToast==='function')showToast('Advanced preferences saved.');
+  }
+  function exportDiagnostics(){
+    const video=document.querySelector('video'),m=performance&&performance.memory;
+    const report={app:'HomeFlix Cyber Node',createdAt:new Date().toISOString(),userAgent:navigator.userAgent,online:navigator.onLine,screen:{width:screen.width,height:screen.height,devicePixelRatio:devicePixelRatio},memory:m?{usedJSHeapSize:m.usedJSHeapSize,totalJSHeapSize:m.totalJSHeapSize,jsHeapSizeLimit:m.jsHeapSizeLimit}:null,playback:video?{paused:video.paused,currentTime:video.currentTime,duration:Number.isFinite(video.duration)?video.duration:null,videoWidth:video.videoWidth,videoHeight:video.videoHeight,readyState:video.readyState,networkState:video.networkState,error:video.error?{code:video.error.code,message:video.error.message}:null}:null,audio:{interruptions:audioInterruptions,lastEvent:lastAudioEvent},advancedSettings:read(),hardwareAcceleration: $('hardware-acceleration')?$('hardware-acceleration').checked:null,limitations:['CPU usage and GPU decoder details are not exposed by every runtime.','Audio events indicate media pipeline stalls/errors and do not confirm audible output.']};
+    const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='homeflix-diagnostics-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+  function init(){
+    const run=$('hf-run-diagnostics'),exp=$('hf-export-diagnostics'),reset=$('hf-reset-advanced');
+    run?.addEventListener('click',()=>{attachAudioMonitor();paintDiagnostics();if(typeof showToast==='function')showToast('Diagnostics refreshed.');});
+    exp?.addEventListener('click',exportDiagnostics);
+    reset?.addEventListener('click',()=>{write({...defaults});syncControls();if(typeof showToast==='function')showToast('Advanced preferences reset.');});
+    for(const id of ['hf-setting-reduced-motion','hf-setting-crt','hf-setting-volume-memory','hf-setting-audio-monitor','hf-setting-autoplay'])$(id)?.addEventListener('change',saveControls);
+    const settings=$('library-settings-modal');
+    if(settings)new MutationObserver(()=>{if(!settings.classList.contains('hidden'))syncControls();}).observe(settings,{attributes:true,attributeFilter:['class']});
+    syncControls();setInterval(()=>{if(settings&&!settings.classList.contains('hidden'))paintDiagnostics()},2000);
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)paintDiagnostics()});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+})();
