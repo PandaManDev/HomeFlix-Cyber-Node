@@ -65,12 +65,23 @@
     viewerHeader.append(viewerTitle, viewerActions);
     const viewerFrameWrap = el('div', { className: 'relative min-h-0 flex-1 bg-black' });
     const viewerFrame = el('iframe', { id: 'homeflix-kstream-iframe', title: 'KStream in-app viewer', src: 'about:blank', className: 'h-full w-full border-0 bg-black', allow: 'autoplay; fullscreen; picture-in-picture', referrerpolicy: 'no-referrer' });
-    const viewerNote = el('p', { className: 'border-t border-white/10 px-4 py-3 text-xs text-zinc-400' }, 'If KStream blocks in-app viewing, choose Open in browser. HomeFlix cannot bypass the site’s embedding restrictions.');
+    const viewerNote = el('p', { id: 'homeflix-kstream-viewer-status', role: 'status', 'aria-live': 'polite', className: 'border-t border-white/10 px-4 py-3 text-xs text-zinc-400' }, 'Loading title in the in-app viewer… If the site blocks embedding, HomeFlix cannot force it to play here.');
     viewerFrameWrap.append(viewerFrame);
     viewerShell.append(viewerHeader, viewerFrameWrap, viewerNote);
     viewer.append(viewerShell);
-    function closeViewer() { viewer.classList.add('hidden'); viewerFrame.src = 'about:blank'; document.body.classList.remove('overflow-hidden'); }
-    function openViewer(entry) { viewerTitle.textContent = entry.title; viewerFrame.src = entry.url || HOME; viewer.classList.remove('hidden'); document.body.classList.add('overflow-hidden'); }
+    let viewerLoadTimer = null;
+    function closeViewer() { viewer.classList.add('hidden'); viewerFrame.src = 'about:blank'; document.body.classList.remove('overflow-hidden'); if (viewerLoadTimer) clearTimeout(viewerLoadTimer); }
+    function openViewer(entry) {
+      viewerTitle.textContent = entry.title;
+      viewerNote.textContent = 'Loading title in the in-app viewer… If the site blocks embedding, HomeFlix cannot force it to play here.';
+      viewer.classList.remove('hidden');
+      document.body.classList.add('overflow-hidden');
+      if (viewerLoadTimer) clearTimeout(viewerLoadTimer);
+      viewerFrame.src = entry.url || HOME;
+      viewerLoadTimer = setTimeout(() => {
+        if (!viewer.classList.contains('hidden')) viewerNote.textContent = 'If the viewer is blank or stuck, KStream may prohibit embedding. HomeFlix cannot bypass that restriction; playback needs a provider-supported embed or a direct stream URL you are authorized to use.';
+      }, 6000);
+    }
     viewerClose.addEventListener('click', closeViewer);
     viewer.addEventListener('click', event => { if (event.target === viewer) closeViewer(); });
     document.addEventListener('keydown', event => { if (event.key === 'Escape' && !viewer.classList.contains('hidden')) closeViewer(); });
@@ -84,7 +95,7 @@
       img.addEventListener('load', () => { wrap.className = 'w-20 shrink-0 aspect-[2/3] rounded-lg overflow-hidden bg-zinc-900'; }, { once: true });
       wrap.append(img);
       const details = el('div', { className: 'min-w-0 self-center' });
-      details.append(el('h3', { className: 'text-sm font-semibold text-white' }, entry.title), el('p', { className: 'text-xs text-zinc-400 mt-1' }, entry.meta), el('p', { className: 'text-xs text-cyan-400 mt-3' }, 'Open on KStream ↗'));
+      details.append(el('h3', { className: 'text-sm font-semibold text-white' }, entry.title), el('p', { className: 'text-xs text-zinc-400 mt-1' }, entry.meta), el('p', { className: 'text-xs text-cyan-400 mt-3' }, 'Play in HomeFlix →'));
       card.append(wrap, details);
       cards.append(card);
     });
