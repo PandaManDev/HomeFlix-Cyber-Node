@@ -478,40 +478,71 @@ function showMainWindow() {
   if (mainWindow) { if (mainWindow.isMinimized()) mainWindow.restore(); mainWindow.show(); mainWindow.focus(); }
 }
 function createTray() {
-  if (tray) return;
+  if (tray) return true;
+
+  // Resolve assets from the packaged app as well as the source checkout.
+  const buildDir = path.join(app.getAppPath(), 'build');
   const iconPaths = [
+    path.join(buildDir, 'homeflix-icon.png'),
+    path.join(buildDir, 'homeflix.ico'),
     path.join(__dirname, '..', 'build', 'homeflix-icon.png'),
     path.join(__dirname, '..', 'build', 'homeflix.ico')
   ];
   let icon = nativeImage.createEmpty();
-  for (const iconPath of iconPaths) {
+  for (const iconPath of [...new Set(iconPaths)]) {
     try {
-      if (fs.existsSync(iconPath)) {
-        const candidate = nativeImage.createFromPath(iconPath);
-        if (!candidate.isEmpty()) { icon = candidate; break; }
-      }
+      if (!fs.existsSync(iconPath)) continue;
+      const candidate = nativeImage.createFromPath(iconPath);
+      if (!candidate.isEmpty()) { icon = candidate; break; }
     } catch (error) {
-      console.warn('Could not load HomeFlix tray icon:', error?.message || error);
+      console.warn('Could not load HomeFlix tray icon from', iconPath, error?.message || error);
     }
   }
+
+  // The SVG is source-controlled, unlike generated PNG/ICO assets that may be absent
+  // in a development checkout. Use it as a last-resort tray image.
   if (icon.isEmpty()) {
-    console.error('HomeFlix tray icon could not be loaded. Ensure npm run make-icon runs before packaging.');
-    return;
+    const svgPath = path.join(buildDir, 'homeflix-icon.svg');
+    try {
+      if (fs.existsSync(svgPath)) {
+        const svg = fs.readFileSync(svgPath, 'utf8');
+        icon = nativeImage.createFromDataURL('data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64'));
+      }
+    } catch (error) {
+      console.warn('Could not create HomeFlix tray icon from SVG:', error?.message || error);
+    }
+  }
+
+  if (icon.isEmpty()) {
+    console.error('HomeFlix tray icon could not be loaded. Check build/homeflix-icon.svg and run npm run make-icon.');
+    return false;
   }
   if (process.platform === 'win32') icon = icon.resize({ width: 16, height: 16 });
-  tray = new Tray(icon);
-  tray.setToolTip('HomeFlix Cyber Node — background service running');
-  const refreshMenu = () => tray.setContextMenu(Menu.buildFromTemplate([
-    { label: 'Open HomeFlix', click: showMainWindow },
-    { label: 'HomeFlix background service: running', enabled: false },
-    { type: 'separator' },
-    { label: 'Launch at Windows sign-in', type: 'checkbox', checked: !!readAppSettings().launchAtLogin, click: item => { setLaunchAtLogin(item.checked); refreshMenu(); } },
-    { type: 'separator' },
-    { label: 'Quit HomeFlix completely', click: () => { isQuitting = true; app.quit(); } }
-  ]));
-  refreshMenu();
-  tray.on('double-click', showMainWindow);
-  tray.on('click', showMainWindow);
+  try {
+    tray = new Tray(icon);
+    tray.setToolTip('HomeFlix Cyber Node — background service running');
+    const refreshMenu = () => {
+      if (!tray) return;
+      tray.setContextMenu(Menu.buildFromTemplate([
+        { label: 'Open HomeFlix', click: showMainWindow },
+        { label: 'HomeFlix background service: running', enabled: false },
+        { type: 'separator' },
+        { label: 'Launch at Windows sign-in', type: 'checkbox', checked: !!readAppSettings().launchAtLogin, click: item => { setLaunchAtLogin(item.checked); refreshMenu(); } },
+        { type: 'separator' },
+        { label: 'Quit HomeFlix completely', click: () => { isQuitting = true; app.quit(); } }
+      ]));
+    };
+    refreshMenu();
+    tray.on('double-click', showMainWindow);
+    tray.on('click', showMainWindow);
+    tray.on('right-click', refreshMenu);
+    tray.on('destroyed', () => { tray = null; });
+    return true;
+  } catch (error) {
+    console.error('Could not create HomeFlix system tray icon:', error?.stack || error);
+    tray = null;
+    return false;
+  }
 }
 function createWindow() {
   mainWindow = new BrowserWindow({
