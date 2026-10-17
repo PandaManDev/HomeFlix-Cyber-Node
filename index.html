@@ -129,6 +129,82 @@
         body.midnight-skin { background:#07111f; }
         body.midnight-skin #library-dashboard { background:#0d1b2a; }
 
+
+        /* HomeFlix layout refresh — same cyberpunk palette, cleaner hierarchy */
+        :root { color-scheme: dark; --hf-red:#e50914; --hf-cyan:#06b6d4; --hf-surface:#111318; --hf-line:rgba(255,255,255,.10); }
+        html { scroll-behavior:smooth; scrollbar-gutter:stable; }
+        body { min-width:320px; background-image:radial-gradient(ellipse at 50% -20%,rgba(6,182,212,.10),transparent 55%),radial-gradient(ellipse at 0% 35%,rgba(229,9,20,.08),transparent 38%); }
+        body::selection { background:#e50914; color:#fff; }
+        button, input, select, a { -webkit-tap-highlight-color:transparent; }
+        button, select { cursor:pointer; }
+        button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline:2px solid #22d3ee; outline-offset:3px; }
+        header { gap:1rem; }
+        header h1 { line-height:1.3; }
+        main { align-content:start; }
+        #library-dashboard, #homeflix-kstream-panel { box-shadow:0 22px 65px rgba(0,0,0,.28); }
+        #library-dashboard > div:first-child { background-image:radial-gradient(ellipse at 100% 0%,rgba(229,9,20,.15),transparent 45%),linear-gradient(110deg,#240406 0%,#171010 50%,#111 100%); }
+        #library-dashboard input[type="search"], #homeflix-kstream-search { min-height:46px; }
+        #library-dashboard button, #library-dashboard label { transition:transform .16s ease, background-color .16s ease, border-color .16s ease; }
+        #library-dashboard button:active, #library-dashboard label:active { transform:scale(.98); }
+        #library-grid, #continue-grid { align-items:stretch; }
+        .library-card { min-height:100%; box-shadow:0 4px 18px rgba(0,0,0,.12); }
+        .library-card:focus-within { outline:2px solid rgba(6,182,212,.8); outline-offset:2px; }
+        .library-poster { aspect-ratio:2/3; }
+        .library-card-body { padding: .85rem; }
+        .library-card-title { line-height:1.4; }
+        #homeflix-kstream-panel { margin-bottom:.25rem; }
+        #homeflix-kstream-panel .homeflix-kstream-card { min-height:142px; align-items:center; }
+        #homeflix-kstream-panel .homeflix-kstream-card img { position:absolute; inset:0; }
+        #homeflix-kstream-panel .homeflix-kstream-card > div:first-child { position:relative; }
+        #homeflix-kstream-panel .homeflix-kstream-card > div:first-child:has(img) { padding:0; }
+        #homeflix-kstream-panel .homeflix-kstream-card h3 { line-height:1.35; }
+        #homeflix-kstream-panel .homeflix-kstream-card:hover { transform:translateY(-2px); box-shadow:0 12px 24px rgba(0,0,0,.24); }
+        #library-settings-modal > div { max-height:min(88vh,900px); overflow:auto; }
+        ::-webkit-scrollbar-thumb { background:linear-gradient(#334155,#0e7490); }
+        @media (min-width:1280px) {
+          main { gap:1.25rem; padding:1.5rem; }
+          #library-dashboard > div:first-child { padding:2.25rem; }
+          #library-dashboard > div:nth-child(2) { padding:2.25rem; }
+          #library-grid, #continue-grid { gap:1.15rem; }
+        }
+        @media (max-width:767px) {
+          body { font-size:14px; }
+          header { align-items:flex-start; padding:.7rem .8rem!important; }
+          header > div:first-child { min-width:0; gap:.55rem; }
+          header h1 { font-size:.88rem; letter-spacing:.035em; }
+          header h1 span { font-size:.55rem!important; }
+          header > div:first-child > div:last-child { gap:.45rem; flex-wrap:wrap; font-size:.62rem; }
+          header > div:last-child { flex-wrap:wrap; justify-content:flex-end; gap:.35rem; }
+          header > div:last-child button { padding:.45rem .55rem; }
+          main { padding:.65rem!important; gap:.75rem!important; }
+          #library-dashboard { border-radius:1rem; }
+          #library-dashboard > div:first-child { padding:1.1rem!important; }
+          #library-dashboard > div:nth-child(2) { padding:1rem!important; }
+          #library-dashboard h2 { font-size:1.7rem; }
+          #library-dashboard .flex.flex-wrap.gap-2 > * { flex:1 1 auto; justify-content:center; }
+          #library-dashboard .mt-6 { margin-top:1rem; }
+          #library-dashboard .mt-6 > div { width:100%; }
+          #library-dashboard select, #library-dashboard #library-rescan { min-height:44px; }
+          #library-dashboard #library-grid, #library-dashboard #continue-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:.65rem; }
+          .library-poster { aspect-ratio:2/3; }
+          .library-card-body { padding:.65rem; }
+          .library-card-title { font-size:.82rem; }
+          #homeflix-kstream-panel { border-radius:1rem; }
+          #homeflix-kstream-panel .p-4, #homeflix-kstream-panel .md\\:p-6 { padding:.85rem; }
+          #homeflix-kstream-panel .homeflix-kstream-card { min-height:120px; padding:.6rem; gap:.6rem; }
+          #homeflix-kstream-panel .homeflix-kstream-card > div:first-child { width:4.25rem; min-width:4.25rem; }
+        }
+        @media (max-width:380px) {
+          header > div:first-child > div:first-child { width:2.2rem!important; height:2.2rem!important; }
+          header > div:first-child > div:first-child svg { width:1.7rem; }
+          header h1 { font-size:.78rem; }
+          #library-dashboard .flex.rounded-xl { width:100%; }
+          #library-dashboard .flex.rounded-xl button { flex:1; }
+        }
+        @media (prefers-reduced-motion:reduce) {
+          *, *::before, *::after { scroll-behavior:auto!important; animation-duration:.01ms!important; animation-iteration-count:1!important; transition-duration:.01ms!important; }
+        }
+
     </style>
 </head>
 <body class="crt min-h-screen flex flex-col selection:bg-cyan-500 selection:text-black">
