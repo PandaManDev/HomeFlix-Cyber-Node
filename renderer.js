@@ -1104,13 +1104,33 @@ const LIBRARY_STORAGE_KEY = 'homeflix-library-v1';
 
         // Expose handlers once during initialization so every inline UI control can call them.
         // Keeping this outside renderVisualizer prevents the UI from depending on animation frames.
+        // Publish every handler used by inline controls explicitly. This keeps controls
+        // callable from the HTML even if renderer packaging changes the script scope.
         Object.assign(window, {
             openLibraryItem, openLibrarySettings, closeLibrarySettings, saveLibrarySettings,
             setLibraryView, setLibraryFilter, showRemoteInfo, connectWebDiscordBridge,
             togglePlay, skipTime, toggleMute, changeSpeed, toggleFullscreen, toggleAppFullscreen,
             promptAddURL, closeUrlModal, confirmAddURL, clearQueue, toggleLoop, playNext,
             selectQueueItem, removeFromQueue, toggleShortcutsModal, toggleCRT, showToast,
-            toggleLibraryFlag, togglePhotoViewerFullscreen, closePhotoViewer
+            toggleLibraryFlag, openImageViewer, togglePhotoViewerFullscreen, closePhotoViewer,
+            setSubtitleSize
+        });
+
+        // Make otherwise-silent renderer exceptions visible so a broken handler can be
+        // diagnosed from the app instead of leaving a button that appears to do nothing.
+        window.addEventListener('error', (event) => {
+            console.error('HomeFlix renderer error:', event.error || event.message);
+            const message = event.error && event.error.message ? event.error.message : event.message;
+            if (typeof showToast === 'function' && message) {
+                showToast('A HomeFlix control failed: ' + String(message).slice(0, 140));
+            }
+        });
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('HomeFlix action failed:', event.reason);
+            const message = event.reason && event.reason.message ? event.reason.message : String(event.reason || 'Unknown error');
+            if (typeof showToast === 'function') {
+                showToast('HomeFlix action failed: ' + message.slice(0, 140));
+            }
         });
 
         function renderVisualizer(timestamp = 0) {
