@@ -1,5 +1,5 @@
 /* HomeFlix KStream browsing panel.
- * Public title links only. KStream may block iframe embedding, so open it externally.
+ * Attempts in-app viewing and explains when a provider may block embedding.
  * This panel never mutates the user's personal library.
  */
 (() => {
@@ -79,14 +79,14 @@
       if (viewerLoadTimer) clearTimeout(viewerLoadTimer);
       viewerFrame.src = entry.url || HOME;
       viewerLoadTimer = setTimeout(() => {
-        if (!viewer.classList.contains('hidden')) viewerNote.textContent = 'If the viewer is blank or stuck, KStream may prohibit embedding. HomeFlix cannot bypass that restriction; playback needs a provider-supported embed or a direct stream URL you are authorized to use.';
+        if (!viewer.classList.contains('hidden')) viewerNote.textContent = 'The page has not become usable after 6 seconds. It may still be loading, or KStream may prohibit embedding. HomeFlix cannot confirm which from inside the frame; playback requires a provider-supported embed or a direct stream URL you are authorized to use.';
       }, 6000);
     }
     viewerClose.addEventListener('click', closeViewer);
     viewer.addEventListener('click', event => { if (event.target === viewer) closeViewer(); });
     document.addEventListener('keydown', event => { if (event.key === 'Escape' && !viewer.classList.contains('hidden')) closeViewer(); });
     entries.forEach(entry => {
-      const card = el('a', { href: entry.url, target: '_blank', rel: 'noopener noreferrer', className: 'homeflix-kstream-card flex gap-3 rounded-xl bg-black/30 border border-white/10 hover:border-cyan-500/60 p-3 transition', 'data-title': entry.title.toLowerCase() });
+      const card = el('a', { href: entry.url, className: 'homeflix-kstream-card flex gap-3 rounded-xl bg-black/30 border border-white/10 hover:border-cyan-500/60 p-3 transition', 'data-title': entry.title.toLowerCase() });
       card.addEventListener('click', event => { event.preventDefault(); openViewer(entry); });
       const wrap = el('div', { className: 'w-20 shrink-0 aspect-[2/3] rounded-lg overflow-hidden bg-gradient-to-br from-cyan-950 via-zinc-900 to-black border border-white/10 flex items-end p-2' });
       const fallback = el('span', { className: 'text-xs leading-snug font-bold text-white break-words' }, entry.title);
