@@ -1446,7 +1446,7 @@ function openImageViewer(item) {
   const defaults={reducedMotion:false,crt:!document.body.classList.contains('crt-off'),rememberVolume:true,audioMonitor:true,autoplayNext:false};
   let audioInterruptions=0, lastAudioEvent=null, audioListenersAttached=false;
   const read=()=>{try{return {...defaults,...JSON.parse(localStorage.getItem(KEY)||'{}')}}catch{return {...defaults}}};
-  const write=v=>{try{localStorage.setItem(KEY,JSON.stringify(v));return true}catch{return false}};
+  const write=v=>{try{const serialized=JSON.stringify(v);localStorage.setItem(KEY,serialized);return localStorage.getItem(KEY)===serialized}catch{return false}};
   const $=id=>document.getElementById(id);
   function apply(v){
     document.body.classList.toggle('hf-reduced-motion',!!v.reducedMotion);
@@ -1469,11 +1469,16 @@ function openImageViewer(item) {
   function paintDiagnostics(){
     const video=document.querySelector('video');
     const memory=$('hf-setting-memory'),playback=$('hf-setting-playback'),events=$('hf-setting-audio-events'),gpu=$('hf-setting-gpu'),note=$('hf-setting-diagnostics-note');
-    if(memory){const m=performance&&performance.memory;memory.textContent=m&&Number.isFinite(m.usedJSHeapSize)?(m.usedJSHeapSize/1048576).toFixed(1)+' MB JS heap':'Not exposed by this runtime';}
-    if(playback){if(!video||!video.currentSrc)playback.textContent='No media loaded';else if(video.error)playback.textContent='Playback error ('+video.error.code+')';else playback.textContent=(video.paused?'Paused':'Playing')+(Number.isFinite(video.videoWidth)&&video.videoWidth?' · '+video.videoWidth+'×'+video.videoHeight:'');}
-    if(events)events.textContent=audioInterruptions+' detected'+(lastAudioEvent?' · last: '+lastAudioEvent.kind:'');
-    if(gpu){const t=$('hardware-acceleration');gpu.textContent=t?(t.disabled?'Desktop-only control':(t.checked?'Enabled (restart may be required)':'Disabled (restart may be required)')):'See hardware setting above';}
-    if(note)note.textContent=lastAudioEvent?'Audio events are diagnostic signals, not proof of audible dropouts. Last event: '+lastAudioEvent.kind+' at '+lastAudioEvent.time+'. CPU/GPU decoder details are not exposed by every runtime.':'Live stats are best-effort. CPU usage and active GPU decoder details are not exposed by every runtime.';
+    try {
+      const m=window.performance && window.performance.memory;
+      if(memory) memory.textContent=m&&Number.isFinite(m.usedJSHeapSize)?(m.usedJSHeapSize/1048576).toFixed(1)+' MB JS heap':'Not exposed by this runtime';
+      if(playback){if(!video||!video.currentSrc)playback.textContent='No media loaded';else if(video.error)playback.textContent='Playback error ('+video.error.code+')';else playback.textContent=(video.paused?'Paused':'Playing')+(Number.isFinite(video.videoWidth)&&video.videoWidth?' · '+video.videoWidth+'×'+video.videoHeight:'');}
+      if(events)events.textContent=audioInterruptions+' detected'+(lastAudioEvent?' · last: '+lastAudioEvent.kind:'');
+      if(gpu){const t=$('hardware-acceleration');gpu.textContent=t?(t.disabled?'Desktop-only control':(t.checked?'Enabled (restart may be required)':'Disabled (restart may be required)')):'See hardware setting above';}
+      if(note)note.textContent=lastAudioEvent?'Audio events are diagnostic signals, not proof of audible dropouts. Last event: '+lastAudioEvent.kind+' at '+lastAudioEvent.time+'. CPU/GPU decoder details are not exposed by every runtime.':'Live stats are best-effort. CPU usage and active GPU decoder details are not exposed by every runtime.';
+    } catch(error) {
+      if(note) note.textContent='Diagnostics could not read one or more runtime values: '+(error&&error.message?error.message:'unknown error')+'. Try Refresh again.';
+    }
   }
   function syncControls(){
     const v=read();
@@ -1487,9 +1492,18 @@ function openImageViewer(item) {
     if(typeof showToast==='function')showToast('Advanced preferences saved.');
   }
   function exportDiagnostics(){
-    const video=document.querySelector('video'),m=performance&&performance.memory;
-    const report={app:'HomeFlix Cyber Node',createdAt:new Date().toISOString(),userAgent:navigator.userAgent,online:navigator.onLine,screen:{width:screen.width,height:screen.height,devicePixelRatio:devicePixelRatio},memory:m?{usedJSHeapSize:m.usedJSHeapSize,totalJSHeapSize:m.totalJSHeapSize,jsHeapSizeLimit:m.jsHeapSizeLimit}:null,playback:video?{paused:video.paused,currentTime:video.currentTime,duration:Number.isFinite(video.duration)?video.duration:null,videoWidth:video.videoWidth,videoHeight:video.videoHeight,readyState:video.readyState,networkState:video.networkState,error:video.error?{code:video.error.code,message:video.error.message}:null}:null,audio:{interruptions:audioInterruptions,lastEvent:lastAudioEvent},advancedSettings:read(),hardwareAcceleration: $('hardware-acceleration')?$('hardware-acceleration').checked:null,limitations:['CPU usage and GPU decoder details are not exposed by every runtime.','Audio events indicate media pipeline stalls/errors and do not confirm audible output.']};
-    const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='homeflix-diagnostics-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    let url=null;
+    try {
+      const video=document.querySelector('video'),m=window.performance&&window.performance.memory,sc=window.screen;
+      const report={app:'HomeFlix Cyber Node',createdAt:new Date().toISOString(),userAgent:navigator.userAgent,online:navigator.onLine,screen:{width:sc?sc.width:null,height:sc?sc.height:null,devicePixelRatio:window.devicePixelRatio||1},memory:m?{usedJSHeapSize:m.usedJSHeapSize,totalJSHeapSize:m.totalJSHeapSize,jsHeapSizeLimit:m.jsHeapSizeLimit}:null,playback:video?{paused:video.paused,currentTime:video.currentTime,duration:Number.isFinite(video.duration)?video.duration:null,videoWidth:video.videoWidth,videoHeight:video.videoHeight,readyState:video.readyState,networkState:video.networkState,error:video.error?{code:video.error.code,message:video.error.message}:null}:null,audio:{interruptions:audioInterruptions,lastEvent:lastAudioEvent},advancedSettings:read(),hardwareAcceleration:$('hardware-acceleration')?$('hardware-acceleration').checked:null,limitations:['CPU usage and GPU decoder details are not exposed by every runtime.','Audio events indicate media pipeline stalls/errors and do not confirm audible output.']};
+      const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'});
+      url=URL.createObjectURL(blob);
+      const a=document.createElement('a');a.href=url;a.download='homeflix-diagnostics-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();
+      if(typeof showToast==='function')showToast('Diagnostics report exported.');
+    } catch(error) {
+      if(typeof showToast==='function')showToast('Could not export diagnostics: '+(error&&error.message?error.message:'unknown error'));
+      const note=$('hf-setting-diagnostics-note');if(note)note.textContent='Export failed: '+(error&&error.message?error.message:'unknown error');
+    } finally {if(url)setTimeout(()=>URL.revokeObjectURL(url),1000);}
   }
   function init(){
     const run=$('hf-run-diagnostics'),exp=$('hf-export-diagnostics'),reset=$('hf-reset-advanced');
