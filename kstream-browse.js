@@ -132,7 +132,9 @@
     );
     const frameTimer = setTimeout(() => {
       if (!frameStatus.isConnected) return;
-      frameStatus.textContent = 'The embedded page may be blocked or still loading. You can open KStream directly.';
+      frameStatus.textContent = 'The embedded page is blank or blocked. Open KStream directly below.';
+      frame.classList.add('hidden');
+      frameFallback.classList.remove('hidden');
     }, 7000);
     browserWrap.append(browserLabel, frame, frameStatus, frameFallback);
     body.append(note, search, cards, browserWrap);
