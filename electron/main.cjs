@@ -479,13 +479,31 @@ function showMainWindow() {
 }
 function createTray() {
   if (tray) return;
-  let icon = nativeImage.createFromPath(path.join(__dirname, '..', 'build', 'homeflix-icon.png'));
-  if (icon.isEmpty()) icon = nativeImage.createFromPath(path.join(__dirname, '..', 'build', 'homeflix.ico'));
+  const iconPaths = [
+    path.join(__dirname, '..', 'build', 'homeflix-icon.png'),
+    path.join(__dirname, '..', 'build', 'homeflix.ico')
+  ];
+  let icon = nativeImage.createEmpty();
+  for (const iconPath of iconPaths) {
+    try {
+      if (fs.existsSync(iconPath)) {
+        const candidate = nativeImage.createFromPath(iconPath);
+        if (!candidate.isEmpty()) { icon = candidate; break; }
+      }
+    } catch (error) {
+      console.warn('Could not load HomeFlix tray icon:', error?.message || error);
+    }
+  }
+  if (icon.isEmpty()) {
+    console.error('HomeFlix tray icon could not be loaded. Ensure npm run make-icon runs before packaging.');
+    return;
+  }
+  if (process.platform === 'win32') icon = icon.resize({ width: 16, height: 16 });
   tray = new Tray(icon);
-  tray.setToolTip('HomeFlix Cyber Node — running in background');
+  tray.setToolTip('HomeFlix Cyber Node — background service running');
   const refreshMenu = () => tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'Open HomeFlix', click: showMainWindow },
-    { label: 'Background services are running', enabled: false },
+    { label: 'HomeFlix background service: running', enabled: false },
     { type: 'separator' },
     { label: 'Launch at Windows sign-in', type: 'checkbox', checked: !!readAppSettings().launchAtLogin, click: item => { setLaunchAtLogin(item.checked); refreshMenu(); } },
     { type: 'separator' },
