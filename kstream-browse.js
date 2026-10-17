@@ -9,8 +9,8 @@
     { title: 'Spider-Man: Brand New Day', meta: 'Movie · 2026 · Featured', url: 'https://kdesa.stream/media/tmdb-movie-969681-spider-man-brand-new-day', poster: 'https://image.tmdb.org/t/p/w500/bjiS5ipwxb9JFy3XRRN4OAilSeX.jpg' },
     { title: 'The Odyssey', meta: 'Movie · 2026 · Featured pick', url: HOME, poster: '' },
     { title: 'Resident Evil', meta: 'Movie · 2026 · Featured pick', url: HOME, poster: 'https://upload.wikimedia.org/wikipedia/commons/3/3a/Resident_Evil_2026_Poster_Film.webp' },
-    { title: 'Insidious: Out of the Further', meta: 'Movie · 2026 · Featured pick', url: HOME, poster: '' },
-    { title: 'Matchbox the Movie', meta: 'Movie · 2026 · Featured pick', url: HOME, poster: '' },
+    { title: 'Insidious: Out of the Further', meta: 'Movie · 2026 · Featured pick', url: HOME, poster: 'https://insidious.movie/images/insidious_poster.jpg' },
+    { title: 'Matchbox the Movie', meta: 'Movie · 2026 · Featured pick', url: HOME, poster: 'https://www.impawards.com/2026/posters/matchbox_the_movie.jpg' },
     { title: 'Fall 2: Deadpoint', meta: 'Movie · 2026 · Featured pick', url: HOME, poster: '' },
     { title: 'The Fix', meta: 'Movie · 2026 · Featured pick', url: HOME, poster: '' },
     { title: 'Runner', meta: 'Movie · 2026 · Featured pick', url: HOME, poster: '' },
@@ -20,7 +20,7 @@
     { title: 'Avengers: Endgame', meta: 'Movie · 2019 · Featured pick', url: HOME, poster: 'https://image.tmdb.org/t/p/w500/or06FN3Dka5tukK1e9sl16pB3iy.jpg' },
     { title: 'Spider-Man: Across the Spider-Verse', meta: 'Movie · 2023 · Featured pick', url: HOME, poster: 'https://image.tmdb.org/t/p/w500/8Vt6mWEReuy4Of61Lnj5Xj704m8.jpg' },
     { title: 'Dune: Part Two', meta: 'Movie · 2024 · Featured pick', url: HOME, poster: 'https://image.tmdb.org/t/p/w500/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg' },
-    { title: 'Inside Out 2', meta: 'Movie · 2024 · Featured pick', url: HOME, poster: '' }
+    { title: 'Inside Out 2', meta: 'Movie · 2024 · Featured pick', url: HOME, poster: 'https://image.tmdb.org/t/p/w500/vpnVM9B6NMmQpWeZvzLvDESb2QY.jpg' }
   ];
   function el(tag, attrs = {}, text = '') {
     const node = document.createElement(tag);
