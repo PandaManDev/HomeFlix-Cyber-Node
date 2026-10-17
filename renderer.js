@@ -1585,7 +1585,21 @@ function openImageViewer(item) {
     const video=document.querySelector('video');
     if(video){
       const restoreVolume=()=>{const prefs=read();if(!prefs.rememberVolume)return;try{const saved=Number(localStorage.getItem('homeflix-preferred-volume'));if(Number.isFinite(saved)&&saved>=0&&saved<=1)video.volume=saved;}catch{}};
-      const applyPlaybackPrefs=()=>{const prefs=read();const speed=Number(prefs.playbackSpeed||1);video.playbackRate=[0.5,0.75,1,1.25,1.5,1.75,2].includes(speed)?speed:1;if(prefs.startMuted)video.muted=true;};
+      const applyPlaybackPrefs=()=>{
+        const prefs=read();
+        const speed=Number(prefs.playbackSpeed||1);
+        video.playbackRate=[0.5,0.75,1,1.25,1.5,1.75,2].includes(speed)?speed:1;
+        // Explicitly apply BOTH sides of the preference. A previously saved muted
+        // media-element state must not survive when "Start videos muted" is off.
+        video.muted=!!prefs.startMuted;
+        const slider=document.getElementById('volume-slider');
+        const sliderVolume=slider?Number(slider.value):1;
+        const preferred=(()=>{try{return Number(localStorage.getItem('homeflix-preferred-volume'))}catch{return NaN}})();
+        const volume=prefs.rememberVolume&&Number.isFinite(preferred)&&preferred>=0&&preferred<=1?preferred:sliderVolume;
+        const ctx=window.homeflixAudioState;
+        if(window.homeflixSyncAudioVolume) window.homeflixSyncAudioVolume(volume);
+        else if(!window.homeflixDesktopAudioManaged) video.volume=Math.max(0,Math.min(1,volume));
+      };
       restoreVolume();applyPlaybackPrefs();video.addEventListener('loadedmetadata',()=>{restoreVolume();applyPlaybackPrefs();});
       video.addEventListener('volumechange',()=>{if(!read().rememberVolume)return;try{localStorage.setItem('homeflix-preferred-volume',String(video.volume));}catch{}});
     }
