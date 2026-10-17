@@ -7,6 +7,7 @@ const { pathToFileURL } = require('node:url');
 const os = require('node:os');
 const express = require('express');
 const DiscordRPC = require('discord-rpc');
+const { setupAutoUpdates } = require('./updater.cjs');
 
 const DISCORD_CLIENT_ID = '1559626336795107379';
 
@@ -197,8 +198,7 @@ function startRemoteServer() {
       attempt.count += 1;
       pairingAttempts.set(ip, attempt);
       return res.status(401).json({ error: 'Incorrect pairing PIN' });
-    }
-    pairingAttempts.delete(ip);
+    }    pairingAttempts.delete(ip);
     const token = crypto.randomBytes(32).toString('hex');
     tokens.set(token, now + TOKEN_TTL_MS);
     res.json({ token, status: remoteStatus });
@@ -397,8 +397,7 @@ function updateDiscordPresence(presence, force = false) {
 }
 
 function clearDiscordPresence() {
-  if (discordReady && discordClient) discordClient.clearActivity().catch(() => {});
-  lastDiscordKey = '';
+  if (discordReady && discordClient) discordClient.clearActivity().catch(() => {});  lastDiscordKey = '';
 }
 
 
@@ -584,6 +583,7 @@ function createWindow() {
 app.whenReady().then(() => {
   if (!hasSingleInstanceLock) return;
   app.setAppUserModelId(APP_ID);
+  setupAutoUpdates({ app, dialog, BrowserWindow });
   backgroundModeEnabled = readAppSettings().backgroundMode !== false;
   createTray();
   const launchHidden = process.argv.includes('--hidden');
@@ -597,8 +597,7 @@ app.whenReady().then(() => {
       if (!filePath || !fs.existsSync(filePath)) return new Response('Media not found', { status: 404 });
       return net.fetch(pathToFileURL(filePath).toString(), { headers: request.headers });
     }
-    if (mediaUrl.hostname === 'converted') {
-      const filePath = transcodedMedia.get(token);
+    if (mediaUrl.hostname === 'converted') {      const filePath = transcodedMedia.get(token);
       if (!filePath || !fs.existsSync(filePath)) return new Response('Media not found', { status: 404 });
       return net.fetch(pathToFileURL(filePath).toString());
     }
