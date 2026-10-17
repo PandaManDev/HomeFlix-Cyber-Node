@@ -9,13 +9,13 @@
       title: 'Spider-Man: Brand New Day',
       meta: 'Movie · 2026',
       url: 'https://kdesa.stream/media/tmdb-movie-969681-spider-man-brand-new-day',
-      poster: 'https://kdesa.stream/bjiS5ipwxb9JFy3XRRN4OAilSeX.jpg'
+      poster: 'https://image.tmdb.org/t/p/w500/bjiS5ipwxb9JFy3XRRN4OAilSeX.jpg'
     },
     {
       title: 'Supernatural',
       meta: 'Show · 2005 · S1 E1',
       url: 'https://kdesa.stream/media/tmdb-tv-1622-supernatural/6904/163114',
-      poster: 'https://kdesa.stream/8iixmfGx5EIFPdpNvB2JvI3VIqX.jpg'
+      poster: 'https://image.tmdb.org/t/p/w500/8iixmfGx5EIFPdpNvB2JvI3VIqX.jpg'
     }
   ];
 
@@ -77,8 +77,14 @@
         'data-title': entry.title.toLowerCase()
       });
       const imgWrap = el('div', { className: 'w-20 shrink-0 aspect-[2/3] rounded-lg overflow-hidden bg-zinc-900' });
-      const img = el('img', { src: entry.poster, alt: '', loading: 'lazy', className: 'w-full h-full object-cover' });
-      img.addEventListener('error', () => { imgWrap.textContent = 'Poster unavailable'; imgWrap.className = 'w-20 shrink-0 aspect-[2/3] rounded-lg bg-zinc-900 flex items-center justify-center text-center text-xs text-zinc-500 p-2'; });
+      const posterFallback = () => {
+        img.remove();
+        imgWrap.replaceChildren();
+        imgWrap.className = 'w-20 shrink-0 aspect-[2/3] rounded-lg overflow-hidden flex items-end p-2 bg-gradient-to-br from-cyan-950 via-zinc-900 to-black border border-white/10';
+        imgWrap.append(el('span', { className: 'text-xs leading-snug font-bold text-white break-words' }, entry.title));
+      };
+      const img = el('img', { src: entry.poster, alt: entry.title + ' poster', loading: 'lazy', referrerpolicy: 'no-referrer', className: 'w-full h-full object-cover' });
+      img.addEventListener('error', posterFallback, { once: true });
       imgWrap.append(img);
       const details = el('div', { className: 'min-w-0 self-center' });
       details.append(
@@ -107,17 +113,28 @@
       title: 'KStream public website',
       loading: 'lazy',
       referrerpolicy: 'no-referrer',
-      className: 'w-full bg-white',
-      style: 'height: min(72vh, 760px); min-height: 420px; border: 0;'
+      className: 'w-full bg-[#090b10]',
+      style: 'height: min(72vh, 760px); min-height: 420px; border: 0; color-scheme: dark;'
     });
     frame.addEventListener('load', () => {
       // Cross-origin content cannot be inspected here. The separate-tab link is the fallback.
       const status = document.getElementById('homeflix-kstream-frame-status');
       if (status) status.textContent = 'If the page looks blank or blocked, open KStream in a separate tab.';
+      clearTimeout(frameTimer);
     });
-    const frameStatus = el('p', { id: 'homeflix-kstream-frame-status', className: 'px-4 py-3 text-xs text-zinc-500' },
-      'Loading KStream. If the site prevents embedding, use the Open KStream button above.');
-    browserWrap.append(browserLabel, frame, frameStatus);
+    const frameStatus = el('p', { id: 'homeflix-kstream-frame-status', className: 'px-4 py-3 text-xs text-zinc-400' },
+      'Loading KStream. If the website stays blank, it may block embedding; use Open KStream to view it directly.');
+    const frameFallback = el('div', { className: 'hidden p-8 text-center bg-[#090b10] border-t border-white/10', id: 'homeflix-kstream-frame-fallback' });
+    frameFallback.append(
+      el('p', { className: 'text-white font-semibold mb-2' }, 'KStream cannot be displayed here'),
+      el('p', { className: 'text-sm text-zinc-400 mb-4' }, 'The source website may block embedded viewing. Open it directly in your browser instead.'),
+      el('a', { href: KSTREAM_HOME, target: '_blank', rel: 'noopener noreferrer', className: 'inline-flex px-4 py-2 rounded-lg bg-cyan-500 text-black font-semibold' }, 'Open KStream')
+    );
+    const frameTimer = setTimeout(() => {
+      if (!frameStatus.isConnected) return;
+      frameStatus.textContent = 'The embedded page may be blocked or still loading. You can open KStream directly.';
+    }, 7000);
+    browserWrap.append(browserLabel, frame, frameStatus, frameFallback);
     body.append(note, search, cards, browserWrap);
     panel.append(header, body);
 
