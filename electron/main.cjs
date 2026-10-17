@@ -569,6 +569,10 @@ function createWindow() {
     title: 'HomeFlix Cyber Node',
     icon: path.join(__dirname, '..', 'build', 'homeflix-icon.png'),
     backgroundColor: '#080808',
+    // Keep the native Windows title bar (minimize, maximize, close), but hide
+    // Electron's File/Edit/View/Help menu so the website fills the app window.
+    autoHideMenuBar: true,
+    menuBarVisible: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -576,6 +580,7 @@ function createWindow() {
       sandbox: true
     }
   });
+  mainWindow.setMenu(null);
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('https://') || url.startsWith('http://')) shell.openExternal(url);
     return { action: 'deny' };
