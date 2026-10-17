@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell, ipcMain, protocol, net, dialog } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, protocol, net, dialog, Tray, Menu, nativeImage } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
 const { spawn } = require('node:child_process');
@@ -82,6 +82,9 @@ const tokens = new Map();
 const pairingAttempts = new Map();
 const TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 let mainWindow;
+let tray = null;
+let isQuitting = false;
+let backgroundModeEnabled = true;
 let remoteServer;
 let discordClient;
 let discordReady = false;
@@ -455,6 +458,43 @@ function installRemotePairingPanel() {
   })()`).catch(error => console.warn('Could not show HomeFlix phone remote pairing:', error.message));
 }
 
+function readAppSettings() {
+  try { return JSON.parse(fs.readFileSync(hardwareSettingsPath, 'utf8')); } catch { return {}; }
+}
+function writeAppSettings(patch) {
+  const next = { ...readAppSettings(), ...patch };
+  fs.mkdirSync(path.dirname(hardwareSettingsPath), { recursive: true });
+  fs.writeFileSync(hardwareSettingsPath, JSON.stringify(next, null, 2), 'utf8');
+  return next;
+}
+function setLaunchAtLogin(enabled) {
+  const value = !!enabled;
+  app.setLoginItemSettings({ openAtLogin: value, openAsHidden: false, args: value ? ['--hidden'] : [] });
+  writeAppSettings({ launchAtLogin: value });
+  return value;
+}
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) createWindow();
+  if (mainWindow) { if (mainWindow.isMinimized()) mainWindow.restore(); mainWindow.show(); mainWindow.focus(); }
+}
+function createTray() {
+  if (tray) return;
+  let icon = nativeImage.createFromPath(path.join(__dirname, '..', 'build', 'homeflix-icon.png'));
+  if (icon.isEmpty()) icon = nativeImage.createFromPath(path.join(__dirname, '..', 'build', 'homeflix.ico'));
+  tray = new Tray(icon);
+  tray.setToolTip('HomeFlix Cyber Node — running in background');
+  const refreshMenu = () => tray.setContextMenu(Menu.buildFromTemplate([
+    { label: 'Open HomeFlix', click: showMainWindow },
+    { label: 'Background services are running', enabled: false },
+    { type: 'separator' },
+    { label: 'Launch at Windows sign-in', type: 'checkbox', checked: !!readAppSettings().launchAtLogin, click: item => { setLaunchAtLogin(item.checked); refreshMenu(); } },
+    { type: 'separator' },
+    { label: 'Quit HomeFlix completely', click: () => { isQuitting = true; app.quit(); } }
+  ]));
+  refreshMenu();
+  tray.on('double-click', showMainWindow);
+  tray.on('click', showMainWindow);
+}
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1440, height: 920, minWidth: 900, minHeight: 620,
@@ -484,11 +524,20 @@ function createWindow() {
       mainWindow.loadFile(path.join(__dirname, '..', 'index.html'));
     }
   });
+  mainWindow.on('close', event => {
+    if (!isQuitting && backgroundModeEnabled) {
+      event.preventDefault();
+      mainWindow.hide();
+    }
+  });
   mainWindow.on('closed', () => { mainWindow = null; });
 }
 app.whenReady().then(() => {
   if (!hasSingleInstanceLock) return;
   app.setAppUserModelId(APP_ID);
+  backgroundModeEnabled = readAppSettings().backgroundMode !== false;
+  createTray();
+  const launchHidden = process.argv.includes('--hidden');
   const startupFiles = process.argv.slice(1).filter(arg => typeof arg === 'string' && !arg.startsWith('--') && SUPPORTED_MEDIA_EXTENSIONS.has(path.extname(arg).toLowerCase()) && fs.existsSync(arg));
   if (startupFiles.length) pendingOpenFiles.push(...startupFiles);
   protocol.handle('homeflix-media', request => {
@@ -558,6 +607,21 @@ app.whenReady().then(() => {
     }});
   });
   ipcMain.handle('homeflix:remote-info', () => getRemoteInfo());
+  ipcMain.handle('homeflix:get-background-services', () => {
+    const saved = readAppSettings();
+    return { backgroundMode: saved.backgroundMode !== false, launchAtLogin: !!saved.launchAtLogin, remoteControl: !!remoteServer, discordPresence: !!discordClient, trayAvailable: !!tray };
+  });
+  ipcMain.handle('homeflix:set-background-mode', (_event, enabled) => {
+    if (typeof enabled !== 'boolean') throw new Error('Background mode must be enabled or disabled.');
+    backgroundModeEnabled = enabled;
+    writeAppSettings({ backgroundMode: enabled });
+    return { enabled, restartRequired: false };
+  });
+  ipcMain.handle('homeflix:set-launch-at-login', (_event, enabled) => {
+    if (typeof enabled !== 'boolean') throw new Error('Launch-at-login must be enabled or disabled.');
+    return { enabled: setLaunchAtLogin(enabled) };
+  });
+  ipcMain.handle('homeflix:show-window', () => { showMainWindow(); return true; });
   ipcMain.handle('homeflix:get-hardware-acceleration', () => ({ enabled: hardwareAccelerationEnabled }));
   ipcMain.handle('homeflix:set-hardware-acceleration', (_event, enabled) => {
     if (typeof enabled !== 'boolean') throw new Error('Hardware acceleration setting must be on or off.');
@@ -636,11 +700,12 @@ app.whenReady().then(() => {
   startDiscordRPC();
   ipcMain.on('homeflix:remote-status', (_event, status) => { if (status && typeof status === 'object') remoteStatus = { ...remoteStatus, ...status }; });
   startRemoteServer();
-  createWindow();
+  if (!launchHidden) createWindow();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
-app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+app.on('window-all-closed', () => { if (process.platform !== 'darwin' && (isQuitting || !backgroundModeEnabled)) app.quit(); });
 app.on('before-quit', () => {
+  isQuitting = true;
   app.isQuitting = true;
   if (discordRetryTimer) clearTimeout(discordRetryTimer);
   clearDiscordPresence();
