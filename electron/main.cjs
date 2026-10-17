@@ -198,7 +198,8 @@ function startRemoteServer() {
       attempt.count += 1;
       pairingAttempts.set(ip, attempt);
       return res.status(401).json({ error: 'Incorrect pairing PIN' });
-    }    pairingAttempts.delete(ip);
+    }
+    pairingAttempts.delete(ip);
     const token = crypto.randomBytes(32).toString('hex');
     tokens.set(token, now + TOKEN_TTL_MS);
     res.json({ token, status: remoteStatus });
@@ -397,7 +398,8 @@ function updateDiscordPresence(presence, force = false) {
 }
 
 function clearDiscordPresence() {
-  if (discordReady && discordClient) discordClient.clearActivity().catch(() => {});  lastDiscordKey = '';
+  if (discordReady && discordClient) discordClient.clearActivity().catch(() => {});
+  lastDiscordKey = '';
 }
 
 
@@ -597,7 +599,8 @@ app.whenReady().then(() => {
       if (!filePath || !fs.existsSync(filePath)) return new Response('Media not found', { status: 404 });
       return net.fetch(pathToFileURL(filePath).toString(), { headers: request.headers });
     }
-    if (mediaUrl.hostname === 'converted') {      const filePath = transcodedMedia.get(token);
+    if (mediaUrl.hostname === 'converted') {
+      const filePath = transcodedMedia.get(token);
       if (!filePath || !fs.existsSync(filePath)) return new Response('Media not found', { status: 404 });
       return net.fetch(pathToFileURL(filePath).toString());
     }
