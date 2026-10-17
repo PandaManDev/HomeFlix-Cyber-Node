@@ -1276,7 +1276,19 @@ const LIBRARY_STORAGE_KEY = 'homeflix-library-v1';
                 else if (command.action==='play') { video.play().catch(()=>{}); state.isPlaying=true; updatePlayIcons(); }
                 else if (command.action==='pause') { video.pause(); state.isPlaying=false; updatePlayIcons(); }
                 else if (command.action==='seek') video.currentTime=Math.max(0,Math.min(video.duration||0,video.currentTime+(Number(command.value)||0)));
-                else if (command.action==='volume') { video.volume=Math.max(0,Math.min(1,Number(command.value)||0)); volumeSlider.value=video.volume; volumeLabel.textContent=Math.round(video.volume*100)+'%'; }
+                else if (command.action==='volume') {
+                    const requestedVolume = Math.max(0, Math.min(1, Number(command.value) || 0));
+                    initAudioEngine();
+                    if (state.gainNode) {
+                        state.gainNode.gain.value = requestedVolume;
+                        video.volume = 1;
+                    } else {
+                        video.volume = requestedVolume;
+                    }
+                    if (requestedVolume > 0) video.muted = false;
+                    volumeSlider.value = requestedVolume;
+                    volumeLabel.textContent = Math.round(requestedVolume * 100) + '%';
+                }
                 else if (command.action==='mute') toggleMute();
                 else if (command.action==='next') playNext();
                 else if (command.action==='previous') selectQueueItem(Math.max(0,state.currentIndex-1));
