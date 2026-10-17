@@ -1,4 +1,44 @@
 const LIBRARY_STORAGE_KEY = 'homeflix-library-v1';
+(function initBackgroundServiceSettings(){
+  const byId = id => document.getElementById(id);
+  async function refresh() {
+    const desktop = window.homeflixDesktop, status = byId('hf-background-services-status');
+    if (!desktop || !desktop.isDesktop || !desktop.getBackgroundServices) {
+      if (status) status.textContent = 'Background services are available in the installed Windows desktop app.';
+      return;
+    }
+    try {
+      const state = await desktop.getBackgroundServices();
+      if (byId('hf-setting-background-mode')) byId('hf-setting-background-mode').checked = !!state.backgroundMode;
+      if (byId('hf-setting-launch-login')) byId('hf-setting-launch-login').checked = !!state.launchAtLogin;
+      if (status) status.textContent = 'System tray: ' + (state.trayAvailable ? 'ready' : 'unavailable') + ' · Phone remote: ' + (state.remoteControl ? 'running' : 'stopped') + ' · Discord presence: ' + (state.discordPresence ? 'connected' : 'not connected');
+    } catch (error) {
+      if (status) status.textContent = 'Could not read service status: ' + (error?.message || 'unknown error');
+    }
+  }
+  document.addEventListener('change', async event => {
+    const desktop = window.homeflixDesktop;
+    if (!desktop || !desktop.isDesktop) return;
+    const target = event.target;
+    try {
+      if (target?.id === 'hf-setting-background-mode') {
+        await desktop.setBackgroundMode(target.checked);
+        const status = byId('hf-background-services-status');
+        if (status) status.textContent = target.checked ? 'Background mode enabled. Closing the window keeps HomeFlix in the tray.' : 'Background mode disabled. Closing the window exits HomeFlix.';
+      } else if (target?.id === 'hf-setting-launch-login') {
+        await desktop.setLaunchAtLogin(target.checked);
+        const status = byId('hf-background-services-status');
+        if (status) status.textContent = target.checked ? 'HomeFlix will start when you sign in to Windows.' : 'Automatic Windows sign-in launch is disabled.';
+      }
+    } catch (error) {
+      target.checked = !target.checked;
+      const status = byId('hf-background-services-status');
+      if (status) status.textContent = 'Could not update setting: ' + (error?.message || 'unknown error');
+    }
+  });
+  document.addEventListener('DOMContentLoaded', refresh);
+  setTimeout(refresh, 800);
+})();
         function loadLibraryMetadata() {
             try { return JSON.parse(localStorage.getItem('homeflix-library-v1') || '{}'); } catch (_) { return {}; }
         }
