@@ -56,8 +56,29 @@
     );
     const search = el('input', { type: 'search', id: 'homeflix-kstream-search', placeholder: 'Filter sample titles…', 'aria-label': 'Filter KStream sample titles', className: 'w-full rounded-xl bg-black/40 border border-white/15 py-3 px-4 text-sm text-white placeholder-zinc-500 outline-none focus:border-cyan-500' });
     const cards = el('div', { id: 'homeflix-kstream-cards', className: 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4' });
+    const viewer = el('div', { id: 'homeflix-kstream-viewer', className: 'hidden fixed inset-0 z-[9999] bg-black/90 backdrop-blur-sm p-3 md:p-6' });
+    const viewerShell = el('div', { className: 'mx-auto flex h-full max-w-7xl flex-col overflow-hidden rounded-2xl border border-cyan-500/30 bg-[#090b10] shadow-2xl' });
+    const viewerHeader = el('div', { className: 'flex items-center justify-between gap-3 border-b border-white/10 p-3 md:p-4' });
+    const viewerTitle = el('h3', { id: 'homeflix-kstream-viewer-title', className: 'min-w-0 truncate font-semibold text-white' }, 'KStream');
+    const viewerActions = el('div', { className: 'flex shrink-0 items-center gap-2' });
+    const viewerOpen = el('a', { id: 'homeflix-kstream-viewer-open', href: HOME, target: '_blank', rel: 'noopener noreferrer', className: 'rounded-lg bg-cyan-500 px-3 py-2 text-xs font-semibold text-black' }, 'Open in browser ↗');
+    const viewerClose = el('button', { type: 'button', className: 'rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-white hover:bg-white/10', 'aria-label': 'Close KStream viewer' }, 'Close ✕');
+    viewerActions.append(viewerOpen, viewerClose);
+    viewerHeader.append(viewerTitle, viewerActions);
+    const viewerFrameWrap = el('div', { className: 'relative min-h-0 flex-1 bg-black' });
+    const viewerFrame = el('iframe', { id: 'homeflix-kstream-iframe', title: 'KStream in-app viewer', src: 'about:blank', className: 'h-full w-full border-0 bg-black', allow: 'autoplay; fullscreen; picture-in-picture', referrerpolicy: 'no-referrer' });
+    const viewerNote = el('p', { className: 'border-t border-white/10 px-4 py-3 text-xs text-zinc-400' }, 'If KStream blocks in-app viewing, choose Open in browser. HomeFlix cannot bypass the site’s embedding restrictions.');
+    viewerFrameWrap.append(viewerFrame);
+    viewerShell.append(viewerHeader, viewerFrameWrap, viewerNote);
+    viewer.append(viewerShell);
+    function closeViewer() { viewer.classList.add('hidden'); viewerFrame.src = 'about:blank'; document.body.classList.remove('overflow-hidden'); }
+    function openViewer(entry) { viewerTitle.textContent = entry.title; viewerOpen.href = entry.url || HOME; viewerFrame.src = entry.url || HOME; viewer.classList.remove('hidden'); document.body.classList.add('overflow-hidden'); }
+    viewerClose.addEventListener('click', closeViewer);
+    viewer.addEventListener('click', event => { if (event.target === viewer) closeViewer(); });
+    document.addEventListener('keydown', event => { if (event.key === 'Escape' && !viewer.classList.contains('hidden')) closeViewer(); });
     entries.forEach(entry => {
       const card = el('a', { href: entry.url, target: '_blank', rel: 'noopener noreferrer', className: 'homeflix-kstream-card flex gap-3 rounded-xl bg-black/30 border border-white/10 hover:border-cyan-500/60 p-3 transition', 'data-title': entry.title.toLowerCase() });
+      card.addEventListener('click', event => { event.preventDefault(); openViewer(entry); });
       const wrap = el('div', { className: 'w-20 shrink-0 aspect-[2/3] rounded-lg overflow-hidden bg-gradient-to-br from-cyan-950 via-zinc-900 to-black border border-white/10 flex items-end p-2' });
       const fallback = el('span', { className: 'text-xs leading-snug font-bold text-white break-words' }, entry.title);
       const img = el('img', { src: entry.poster, alt: entry.title + ' poster', loading: 'lazy', referrerpolicy: 'no-referrer', className: 'w-full h-full object-cover' });
@@ -81,6 +102,7 @@
       toggle.textContent = expanded ? 'Show catalog ＋' : 'Hide catalog −';
     });
     panel.append(header, body);
+    document.body.append(viewer);
     const main = document.querySelector('main');
     const dashboard = document.getElementById('library-dashboard');
     if (main && dashboard) main.insertBefore(panel, dashboard);
