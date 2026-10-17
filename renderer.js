@@ -340,6 +340,18 @@ const LIBRARY_STORAGE_KEY = 'homeflix-library-v1';
                 state.gainNode.connect(state.analyser);
                 state.analyser.connect(state.audioContext.destination);
                 state.gainNode.gain.value = parseFloat(volumeSlider.value);
+                // Expose one synchronization path for startup preferences and remote controls.
+                window.homeflixSyncAudioVolume = (volume) => {
+                    const safeVolume = Math.max(0, Math.min(3, Number(volume) || 0));
+                    if (state.gainNode) {
+                        state.gainNode.gain.value = safeVolume;
+                        video.volume = 1;
+                    } else {
+                        video.volume = Math.min(1, safeVolume);
+                    }
+                    volumeSlider.value = String(safeVolume);
+                    volumeLabel.textContent = Math.round(safeVolume * 100) + '%';
+                };
                 // The Web Audio gain node owns player volume; keep the media element's
                 // native volume at full level so a previous remote-volume command cannot
                 // leave the Web Audio output silently multiplied by zero.
