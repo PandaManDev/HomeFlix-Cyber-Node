@@ -982,6 +982,10 @@ const LIBRARY_STORAGE_KEY = 'homeflix-library-v1';
         volumeSlider.addEventListener('input', (e) => {
             initAudioEngine();
             const val = parseFloat(e.target.value);
+            // Moving the volume slider to a positive value is an explicit user
+            // request for audible playback. Clear a stale native muted flag too;
+            // otherwise the icon/slider can show volume while the media stays silent.
+            if (val > 0 && video.muted) video.muted = false;
             if (state.gainNode) {
                 state.gainNode.gain.value = val;
                 // Do not let a stale native volume of 0 mute the Web Audio output.
