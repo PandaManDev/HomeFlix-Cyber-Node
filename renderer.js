@@ -761,7 +761,7 @@ const LIBRARY_STORAGE_KEY = 'homeflix-library-v1';
         video.addEventListener('click', togglePlay);
         video.addEventListener('play', () => { state.isPlaying = true; updatePlayIcons(); syncDiscordPresence(); });
         video.addEventListener('pause', () => { state.isPlaying = false; updatePlayIcons(); syncDiscordPresence(); });
-        video.addEventListener('ended', () => { syncDiscordPresence(true); playNext(); });
+        video.addEventListener('ended', () => { syncDiscordPresence(true); let autoNext = false; try { autoNext = JSON.parse(localStorage.getItem('homeflix-advanced-settings-v1') || '{}').autoplayNext === true; } catch {} if (autoNext) playNext(); });
 
         let lastProgressSave = 0;
         video.addEventListener('timeupdate', () => {
@@ -1443,7 +1443,7 @@ function openImageViewer(item) {
 /* HomeFlix Advanced Settings: saved preferences and honest runtime diagnostics. */
 (function homeflixAdvancedSettings(){
   const KEY='homeflix-advanced-settings-v1';
-  const defaults={reducedMotion:false,crt:true,rememberVolume:true,audioMonitor:true,autoplayNext:false};
+  const defaults={reducedMotion:false,crt:!document.body.classList.contains('crt-off'),rememberVolume:true,audioMonitor:true,autoplayNext:false};
   let audioInterruptions=0, lastAudioEvent=null, audioListenersAttached=false;
   const read=()=>{try{return {...defaults,...JSON.parse(localStorage.getItem(KEY)||'{}')}}catch{return {...defaults}}};
   const write=v=>{try{localStorage.setItem(KEY,JSON.stringify(v));return true}catch{return false}};
@@ -1499,6 +1499,12 @@ function openImageViewer(item) {
     for(const id of ['hf-setting-reduced-motion','hf-setting-crt','hf-setting-volume-memory','hf-setting-audio-monitor','hf-setting-autoplay'])$(id)?.addEventListener('change',saveControls);
     const settings=$('library-settings-modal');
     if(settings)new MutationObserver(()=>{if(!settings.classList.contains('hidden'))syncControls();}).observe(settings,{attributes:true,attributeFilter:['class']});
+    const video=document.querySelector('video');
+    if(video){
+      const restoreVolume=()=>{const prefs=read();if(!prefs.rememberVolume)return;try{const saved=Number(localStorage.getItem('homeflix-preferred-volume'));if(Number.isFinite(saved)&&saved>=0&&saved<=1)video.volume=saved;}catch{}};
+      restoreVolume();video.addEventListener('loadedmetadata',restoreVolume);
+      video.addEventListener('volumechange',()=>{if(!read().rememberVolume)return;try{localStorage.setItem('homeflix-preferred-volume',String(video.volume));}catch{}});
+    }
     syncControls();setInterval(()=>{if(settings&&!settings.classList.contains('hidden'))paintDiagnostics()},2000);
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)paintDiagnostics()});
   }
