@@ -6,6 +6,7 @@ on:
     paths:
       - 'electron/**'
       - 'index.html'
+      - 'renderer.js'
       - 'package.json'
       - 'scripts/**'
       - '.github/workflows/build-windows-installer.yml'
