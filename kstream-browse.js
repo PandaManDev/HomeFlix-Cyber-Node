@@ -44,15 +44,14 @@
     );
     const actions = el('div', { className: 'flex flex-wrap items-center gap-2' });
     const toggle = el('button', { type: 'button', id: 'homeflix-kstream-toggle', 'aria-expanded': 'false', 'aria-controls': 'homeflix-kstream-body', className: 'inline-flex items-center justify-center px-4 py-2.5 rounded-lg border border-cyan-500/50 hover:bg-cyan-500/10 text-cyan-300 font-semibold text-sm transition' }, 'Show catalog ＋');
-    const open = el('a', { href: HOME, target: '_blank', rel: 'noopener noreferrer', className: 'inline-flex items-center justify-center px-4 py-2.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-semibold text-sm transition' }, 'Open KStream ↗');
-    actions.append(toggle, open);
+    actions.append(toggle);
     top.append(intro, actions);
     header.append(top);
     const body = el('div', { id: 'homeflix-kstream-body', className: 'p-4 md:p-6 space-y-5 hidden' });
     const note = el('div', { className: 'rounded-xl border border-white/10 bg-[#090b10] p-4 md:p-5' });
     note.append(
       el('p', { className: 'text-white font-semibold mb-1' }, 'Why the website is not embedded'),
-      el('p', { className: 'text-sm text-zinc-400 leading-relaxed' }, 'KStream can block display inside other apps. HomeFlix no longer shows a blank white frame; use Open KStream to browse the source directly. These are sample shortcuts, not a complete or automatically synced catalog.')
+      el('p', { className: 'text-sm text-zinc-400 leading-relaxed' }, 'KStream may block playback inside other apps. These are sample title shortcuts, not a complete or automatically synced catalog.')
     );
     const search = el('input', { type: 'search', id: 'homeflix-kstream-search', placeholder: 'Filter sample titles…', 'aria-label': 'Filter KStream sample titles', className: 'w-full rounded-xl bg-black/40 border border-white/15 py-3 px-4 text-sm text-white placeholder-zinc-500 outline-none focus:border-cyan-500' });
     const cards = el('div', { id: 'homeflix-kstream-cards', className: 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4' });
@@ -61,9 +60,8 @@
     const viewerHeader = el('div', { className: 'flex items-center justify-between gap-3 border-b border-white/10 p-3 md:p-4' });
     const viewerTitle = el('h3', { id: 'homeflix-kstream-viewer-title', className: 'min-w-0 truncate font-semibold text-white' }, 'KStream');
     const viewerActions = el('div', { className: 'flex shrink-0 items-center gap-2' });
-    const viewerOpen = el('a', { id: 'homeflix-kstream-viewer-open', href: HOME, target: '_blank', rel: 'noopener noreferrer', className: 'rounded-lg bg-cyan-500 px-3 py-2 text-xs font-semibold text-black' }, 'Open in browser ↗');
     const viewerClose = el('button', { type: 'button', className: 'rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-white hover:bg-white/10', 'aria-label': 'Close KStream viewer' }, 'Close ✕');
-    viewerActions.append(viewerOpen, viewerClose);
+    viewerActions.append(viewerClose);
     viewerHeader.append(viewerTitle, viewerActions);
     const viewerFrameWrap = el('div', { className: 'relative min-h-0 flex-1 bg-black' });
     const viewerFrame = el('iframe', { id: 'homeflix-kstream-iframe', title: 'KStream in-app viewer', src: 'about:blank', className: 'h-full w-full border-0 bg-black', allow: 'autoplay; fullscreen; picture-in-picture', referrerpolicy: 'no-referrer' });
@@ -72,7 +70,7 @@
     viewerShell.append(viewerHeader, viewerFrameWrap, viewerNote);
     viewer.append(viewerShell);
     function closeViewer() { viewer.classList.add('hidden'); viewerFrame.src = 'about:blank'; document.body.classList.remove('overflow-hidden'); }
-    function openViewer(entry) { viewerTitle.textContent = entry.title; viewerOpen.href = entry.url || HOME; viewerFrame.src = entry.url || HOME; viewer.classList.remove('hidden'); document.body.classList.add('overflow-hidden'); }
+    function openViewer(entry) { viewerTitle.textContent = entry.title; viewerFrame.src = entry.url || HOME; viewer.classList.remove('hidden'); document.body.classList.add('overflow-hidden'); }
     viewerClose.addEventListener('click', closeViewer);
     viewer.addEventListener('click', event => { if (event.target === viewer) closeViewer(); });
     document.addEventListener('keydown', event => { if (event.key === 'Escape' && !viewer.classList.contains('hidden')) closeViewer(); });
