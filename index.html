@@ -221,6 +221,28 @@
                     <p id="hardware-acceleration-status" role="status" aria-live="polite" class="text-xs text-zinc-400 mt-3">Hardware acceleration is enabled by default.</p>
                 </div>
                 <label class="block text-sm text-zinc-300 mb-2">Appearance</label><select id="library-theme" class="w-full rounded-lg bg-black border border-white/15 p-3 text-white mb-5"><option value="netflix">Netflix Red</option><option value="cyber">Cyber Neon</option><option value="midnight">Midnight Blue</option></select>
+                <div class="rounded-xl bg-black/30 border border-white/10 p-4 mb-5">
+                    <h4 class="font-semibold text-white mb-1"><i class="fa-solid fa-sliders mr-2 text-cyan-300"></i>Playback & interface</h4>
+                    <p class="text-xs text-zinc-400 mb-4">These preferences are saved on this device.</p>
+                    <div class="space-y-3">
+                      <label class="flex items-center justify-between gap-3 text-sm text-zinc-200"><span>Reduce interface animations</span><input id="hf-setting-reduced-motion" type="checkbox" class="w-4 h-4 accent-cyan-400"></label>
+                      <label class="flex items-center justify-between gap-3 text-sm text-zinc-200"><span>Enable CRT scanline effects</span><input id="hf-setting-crt" type="checkbox" class="w-4 h-4 accent-cyan-400" checked></label>
+                      <label class="flex items-center justify-between gap-3 text-sm text-zinc-200"><span>Remember preferred volume</span><input id="hf-setting-volume-memory" type="checkbox" class="w-4 h-4 accent-cyan-400" checked></label>
+                      <label class="flex items-center justify-between gap-3 text-sm text-zinc-200"><span>Audio health monitoring</span><input id="hf-setting-audio-monitor" type="checkbox" class="w-4 h-4 accent-cyan-400" checked></label>
+                      <label class="flex items-center justify-between gap-3 text-sm text-zinc-200"><span>Auto-play next item (when a queue is available)</span><input id="hf-setting-autoplay" type="checkbox" class="w-4 h-4 accent-cyan-400"></label>
+                    </div>
+                </div>
+                <div class="rounded-xl bg-black/30 border border-white/10 p-4 mb-5">
+                    <div class="flex items-center justify-between gap-3 mb-3"><h4 class="font-semibold text-white"><i class="fa-solid fa-gauge-high mr-2 text-emerald-300"></i>Performance & audio health</h4><button id="hf-run-diagnostics" type="button" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-xs text-white">Refresh</button></div>
+                    <div class="grid grid-cols-2 gap-3">
+                      <div class="rounded-lg bg-white/5 p-3"><div class="text-xs text-zinc-400">Memory</div><div id="hf-setting-memory" class="text-sm font-semibold text-white mt-1">Checking…</div></div>
+                      <div class="rounded-lg bg-white/5 p-3"><div class="text-xs text-zinc-400">Playback</div><div id="hf-setting-playback" class="text-sm font-semibold text-white mt-1">No media loaded</div></div>
+                      <div class="rounded-lg bg-white/5 p-3"><div class="text-xs text-zinc-400">Audio interruptions</div><div id="hf-setting-audio-events" class="text-sm font-semibold text-white mt-1">0 detected</div></div>
+                      <div class="rounded-lg bg-white/5 p-3"><div class="text-xs text-zinc-400">Hardware acceleration</div><div id="hf-setting-gpu" class="text-sm font-semibold text-white mt-1">Use the control above</div></div>
+                    </div>
+                    <p id="hf-setting-diagnostics-note" role="status" aria-live="polite" class="text-xs text-zinc-400 mt-3">Browser/Electron may not expose CPU, GPU decoder, or dropped-frame data on every system.</p>
+                    <div class="flex flex-wrap gap-2 mt-3"><button id="hf-export-diagnostics" type="button" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-xs text-white">Export diagnostics</button><button id="hf-reset-advanced" type="button" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-xs text-white">Reset these preferences</button></div>
+                </div>
                 <div class="rounded-xl bg-black/30 border border-white/10 p-4 mb-5"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-red-600/20 flex items-center justify-center text-red-400"><i class="fa-solid fa-mobile-screen-button"></i></div><div class="flex-1"><h4 class="font-semibold text-white">Phone remote</h4><p class="text-xs text-zinc-500 mt-1">Remote control works in the installed desktop app when its local remote service is available.</p></div></div><p id="remote-status" class="text-sm text-zinc-400 mt-3">Checking desktop support…</p><button onclick="showRemoteInfo()" class="mt-3 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-white text-sm">Remote control info</button></div>
                 <div class="rounded-xl bg-black/30 border border-white/10 p-4 mb-5">
                     <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-lg bg-indigo-600/20 flex items-center justify-center text-indigo-300"><i class="fa-brands fa-discord"></i></div><div class="flex-1"><h4 class="font-semibold text-white">Automatic Discord Rich Presence</h4><p class="text-xs text-zinc-400 mt-1">HomeFlix automatically looks for the desktop companion and its Discord connection. No PIN or manual pairing is needed.</p></div></div>
@@ -676,6 +698,14 @@
         if (urlModal && !urlModal.classList.contains('hidden')) urlModal.classList.add('hidden');
       });
     </script>
+
+
+    <style id="homeflix-advanced-settings-style">
+      #library-settings-modal { overflow-y:auto; align-items:flex-start; }
+      #library-settings-modal > div { max-height:calc(100dvh - 24px); overflow-y:auto; overscroll-behavior:contain; }
+      body.hf-reduced-motion *, body.hf-reduced-motion *::before, body.hf-reduced-motion *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; scroll-behavior:auto !important; transition-duration:.01ms !important; }
+      @media(max-width:600px){ #library-settings-modal {padding:8px!important;} #library-settings-modal > div {padding:16px!important; max-height:calc(100dvh - 16px);} #library-settings-modal .grid.grid-cols-2 {grid-template-columns:minmax(0,1fr)!important;} }
+    </style>
 
 </body>
 </html>
